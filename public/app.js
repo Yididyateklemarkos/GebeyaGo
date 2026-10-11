@@ -7,74 +7,73 @@
   // ---------- text ----------
   const T = {
     en: {
-      tab_deals: 'Groups', tab_orders: 'My orders', tab_profile: 'Profile', tab_admin: 'Admin',
-      open_groups: 'Open groups', past_groups: 'Past groups',
-      no_groups: 'No groups yet. Check back soon.',
-      joined_of: '{n} of {moq} units joined', price_now: 'Price now', per: 'per {unit}',
-      time_left: '{t} left', ended: 'Ended',
-      tiers: 'Price by group size', units_plus: '{n}+ units',
-      next_tier: '{n} more units to reach {price}',
-      moq_note: 'This group goes ahead if {moq} units are joined by the deadline. If not, it is cancelled and nobody pays.',
-      origin: 'Origin', max_per_buyer: 'Maximum per buyer', quantity: 'Quantity',
-      join: 'Join this group', update_qty: 'Update quantity', leave: 'Leave group',
-      est_total: 'Estimated total',
-      price_may_drop: 'The price can drop as more buyers join. You pay only after the group locks.',
+      tab_products: 'Products', tab_orders: 'My orders', tab_profile: 'Profile', tab_admin: 'Admin',
+      intro: 'Buy imported goods in bulk at supplier prices.',
+      no_products: 'No products yet. Check back soon.',
+      min_order: 'Minimum order: {n} {unit}', per: 'per {unit}',
+      down_to: 'Down to {price} for larger orders', lead_time: 'Delivery time', origin: 'Origin',
+      tiers_title: 'Price by order size', units_plus: '{n}+ {unit}', tap_tier: 'Tap a row to set that quantity.',
+      moq_note: 'You must order at least {n} {unit}. The more you order, the lower the price per {unit}.',
+      quantity: 'Quantity', max_qty_note: 'Maximum per order: {n}', price_each: 'Price per {unit}', total: 'Total',
+      next_tier_hint: 'Order {n} more to pay {price} per {unit}.',
+      delivery_note: 'Note for us (optional)', note_placeholder: 'Delivery city, special requests',
+      place_order: 'Place order',
+      price_locked_note: 'Your price is fixed when you place the order. You then pay by bank or mobile money transfer and upload the receipt.',
       profile_needed: 'Add your phone number and business name first, so we can reach you about delivery.',
-      your_order: 'Your order', you_joined: 'You joined: {n}',
-      s_joined: 'Joined, waiting for the group to fill', s_awaiting_payment: 'Payment needed',
-      s_receipt_uploaded: 'Receipt sent, waiting for confirmation', s_paid: 'Paid',
-      d_open: 'Open', d_locked: 'Locked', d_ordered: 'Ordered', d_shipped: 'Shipped', d_arrived: 'Arrived',
-      d_closed: 'Closed', d_cancelled: 'Cancelled',
-      final_price: 'Final price', amount_due: 'Amount to pay', pay_by: 'Pay by {d}',
+      order_n: 'Order #{id}', order_placed: 'Order placed',
+      st_payment: 'Payment', st_paid: 'Paid', st_ordered: 'Ordered', st_shipped: 'Shipped', st_arrived: 'Arrived', st_completed: 'Done',
+      s_awaiting_payment: 'Waiting for your payment', s_receipt_uploaded: 'Receipt sent, waiting for confirmation',
+      s_paid: 'Paid', s_ordered: 'Ordered from the supplier', s_shipped: 'On the way', s_arrived: 'Arrived',
+      s_completed: 'Completed', s_cancelled: 'Cancelled',
+      amount_due: 'Amount to pay', pay_by: 'Pay by {d} or the order is cancelled',
       how_to_pay: 'How to pay', payment_missing: 'The organizer will send payment details in Telegram.',
       upload_receipt: 'Upload payment receipt', replace_receipt: 'Replace receipt',
       receipt_hint: 'Send a clear photo or PDF of your transfer receipt.',
       rejected_note: 'Receipt not accepted. {note}', eta: 'Expected arrival',
-      share: 'Share this group', back: 'Back',
-      orders_empty: 'You have not joined any group yet.',
+      cancel_order: 'Cancel order', confirm_cancel: 'Cancel this order?', cancelled_ok: 'Order cancelled',
+      orders_empty: 'You have no orders yet.', back: 'Back', share: 'Share this product',
       profile_title: 'Your details', name: 'Name', phone: 'Phone number',
       business: 'Business name (or planned business)', language: 'Language',
-      save: 'Save', saved: 'Saved', total: 'Total', uploaded: 'Receipt uploaded', joined_ok: 'You joined the group',
-      left_ok: 'You left the group', loading: 'Loading', error: 'Something went wrong. Try again.',
-      confirm_leave: 'Leave this group?',
+      save: 'Save', saved: 'Saved', uploaded: 'Receipt uploaded',
+      loading: 'Loading', error: 'Something went wrong. Try again.', yes: 'Yes', no: 'No',
     },
     am: {
-      tab_deals: 'ቡድኖች', tab_orders: 'ትዕዛዞቼ', tab_profile: 'መገለጫ', tab_admin: 'አስተዳዳሪ',
-      open_groups: 'ክፍት ቡድኖች', past_groups: 'ያለፉ ቡድኖች',
-      no_groups: 'እስካሁን ቡድን የለም። በቅርቡ ይመለሱ።',
-      joined_of: 'ከ{moq} ክፍሎች {n} ተቀላቅለዋል', price_now: 'አሁን ያለው ዋጋ', per: 'በ{unit}',
-      time_left: '{t} ቀርቷል', ended: 'አብቅቷል',
-      tiers: 'በቡድን መጠን ዋጋ', units_plus: '{n}+ ክፍሎች',
-      next_tier: 'ወደ {price} ለመድረስ {n} ተጨማሪ ክፍሎች ይቀራሉ',
-      moq_note: 'ይህ ቡድን የሚቀጥለው በጊዜ ገደቡ {moq} ክፍሎች ከተቀላቀሉ ነው። ካልሆነ ይሰረዛል፣ ማንም አይከፍልም።',
-      origin: 'ምንጭ', max_per_buyer: 'ለአንድ ገዢ ከፍተኛ', quantity: 'ብዛት',
-      join: 'ቡድኑን ተቀላቀል', update_qty: 'ብዛት አስተካክል', leave: 'ከቡድኑ ውጣ',
-      est_total: 'የሚገመት ጠቅላላ',
-      price_may_drop: 'ብዙ ገዢዎች ሲቀላቀሉ ዋጋው ሊቀንስ ይችላል። የሚከፍሉት ቡድኑ ከተቆለፈ በኋላ ነው።',
+      tab_products: 'ምርቶች', tab_orders: 'ትዕዛዞቼ', tab_profile: 'መገለጫ', tab_admin: 'አስተዳዳሪ',
+      intro: 'ከውጭ የሚገቡ ዕቃዎችን በጅምላ በአቅራቢ ዋጋ ይግዙ።',
+      no_products: 'እስካሁን ምርት የለም። በቅርቡ ይመለሱ።',
+      min_order: 'ዝቅተኛ ትዕዛዝ፡ {n} {unit}', per: 'በ{unit}',
+      down_to: 'ለትልቅ ትዕዛዝ እስከ {price} ዝቅ ይላል', lead_time: 'የማድረሻ ጊዜ', origin: 'ምንጭ',
+      tiers_title: 'በትዕዛዝ መጠን ዋጋ', units_plus: '{n}+ {unit}', tap_tier: 'ያንን መጠን ለመምረጥ ረድፉን ይጫኑ።',
+      moq_note: 'ቢያንስ {n} {unit} ማዘዝ አለብዎት። ብዙ ሲያዝዙ የአንዱ {unit} ዋጋ ይቀንሳል።',
+      quantity: 'ብዛት', max_qty_note: 'ለአንድ ትዕዛዝ ከፍተኛ፡ {n}', price_each: 'የአንዱ {unit} ዋጋ', total: 'ጠቅላላ',
+      next_tier_hint: '{n} ተጨማሪ ካዘዙ የአንዱ {unit} ዋጋ {price} ይሆናል።',
+      delivery_note: 'ለእኛ መልዕክት (አማራጭ)', note_placeholder: 'የሚደርስበት ከተማ፣ ልዩ ጥያቄዎች',
+      place_order: 'ትዕዛዝ ላክ',
+      price_locked_note: 'ትዕዛዝ ሲያስገቡ ዋጋዎ ይቆለፋል። ከዚያ በባንክ ወይም በሞባይል ገንዘብ ከፍለው ደረሰኙን ይጭናሉ።',
       profile_needed: 'ስለ ርክክብ ለማግኘት መጀመሪያ ስልክ ቁጥርዎን እና የንግድ ስምዎን ያስገቡ።',
-      your_order: 'ትዕዛዝዎ', you_joined: 'ተቀላቅለዋል፡ {n}',
-      s_joined: 'ተቀላቅለዋል፣ ቡድኑ እስኪሞላ ይጠብቁ', s_awaiting_payment: 'ክፍያ ያስፈልጋል',
-      s_receipt_uploaded: 'ደረሰኝ ተልኳል፣ ማረጋገጫ ይጠብቁ', s_paid: 'ተከፍሏል',
-      d_open: 'ክፍት', d_locked: 'ተቆልፏል', d_ordered: 'ታዟል', d_shipped: 'ተልኳል', d_arrived: 'ደርሷል',
-      d_closed: 'ተዘግቷል', d_cancelled: 'ተሰርዟል',
-      final_price: 'የመጨረሻ ዋጋ', amount_due: 'የሚከፈል መጠን', pay_by: 'እስከ {d} ይክፈሉ',
+      order_n: 'ትዕዛዝ #{id}', order_placed: 'ትዕዛዝ ተልኳል',
+      st_payment: 'ክፍያ', st_paid: 'ተከፍሏል', st_ordered: 'ታዟል', st_shipped: 'ተልኳል', st_arrived: 'ደርሷል', st_completed: 'ተጠናቋል',
+      s_awaiting_payment: 'ክፍያዎን እየጠበቅን ነው', s_receipt_uploaded: 'ደረሰኝ ተልኳል፣ ማረጋገጫ ይጠብቁ',
+      s_paid: 'ተከፍሏል', s_ordered: 'ለአቅራቢው ታዟል', s_shipped: 'በመንገድ ላይ', s_arrived: 'ደርሷል',
+      s_completed: 'ተጠናቋል', s_cancelled: 'ተሰርዟል',
+      amount_due: 'የሚከፈል መጠን', pay_by: 'እስከ {d} ይክፈሉ፣ ካልሆነ ትዕዛዙ ይሰረዛል',
       how_to_pay: 'እንዴት እንደሚከፍሉ', payment_missing: 'አስተባባሪው የክፍያ መረጃ በቴሌግራም ይልካል።',
       upload_receipt: 'የክፍያ ደረሰኝ ጫን', replace_receipt: 'ደረሰኝ ቀይር',
       receipt_hint: 'የገንዘብ ማስተላለፊያ ደረሰኝዎን ግልጽ ፎቶ ወይም PDF ይላኩ።',
       rejected_note: 'ደረሰኝ አልተቀበለም። {note}', eta: 'የሚደርስበት ጊዜ',
-      share: 'ቡድኑን አጋራ', back: 'ተመለስ',
-      orders_empty: 'እስካሁን ምንም ቡድን አልተቀላቀሉም።',
+      cancel_order: 'ትዕዛዝ ሰርዝ', confirm_cancel: 'ይህን ትዕዛዝ ይሰርዙ?', cancelled_ok: 'ትዕዛዝ ተሰርዟል',
+      orders_empty: 'እስካሁን ምንም ትዕዛዝ የለም።', back: 'ተመለስ', share: 'ይህን ምርት አጋራ',
       profile_title: 'የእርስዎ መረጃ', name: 'ስም', phone: 'ስልክ ቁጥር',
       business: 'የንግድ ስም (ወይም የታቀደ ንግድ)', language: 'ቋንቋ',
-      save: 'አስቀምጥ', saved: 'ተቀምጧል', total: 'ጠቅላላ', uploaded: 'ደረሰኝ ተጭኗል', joined_ok: 'ቡድኑን ተቀላቅለዋል',
-      left_ok: 'ከቡድኑ ወጥተዋል', loading: 'በመጫን ላይ', error: 'ችግር ተፈጥሯል። እንደገና ይሞክሩ።',
-      confirm_leave: 'ከዚህ ቡድን ይውጡ?',
+      save: 'አስቀምጥ', saved: 'ተቀምጧል', uploaded: 'ደረሰኝ ተጭኗል',
+      loading: 'በመጫን ላይ', error: 'ችግር ተፈጥሯል። እንደገና ይሞክሩ።', yes: 'አዎ', no: 'አይ',
     },
   };
 
   const S = {
-    tab: 'deals', deals: [], orders: [], cfg: null, lang: 'en', dealId: null, qty: 1,
-    adminOrders: {}, adminOpen: null, tierRows: 2, loaded: false,
+    tab: 'products', products: [], orders: [], cfg: null, lang: 'en', loaded: false,
+    view: null, qty: 1,
+    aTab: 'orders', aProducts: [], aOrders: [], aFilter: { status: 'active', product: '' }, form: null,
   };
 
   const t = (k, v = {}) => {
@@ -84,22 +83,17 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ETB';
   const $ = (id) => document.getElementById(id);
-
-  const timeLeft = (ms) => {
-    const d = ms - Date.now();
-    if (d <= 0) return null;
-    const m = Math.floor(d / 60000), h = Math.floor(m / 60), days = Math.floor(h / 24);
-    if (days >= 1) return `${days}d ${h % 24}h`;
-    if (h >= 1) return `${h}h ${m % 60}m`;
-    return `${Math.max(1, m)}m`;
-  };
   const dateStr = (ms) => new Date(ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
   // ---------- api ----------
+  function authHeaders() {
+    const h = {};
+    if (tg && tg.initData) h['x-init-data'] = tg.initData;
+    else if (devUser) h['x-dev-user'] = devUser;
+    return h;
+  }
   async function api(path, { method = 'GET', body, form } = {}) {
-    const headers = {};
-    if (tg && tg.initData) headers['x-init-data'] = tg.initData;
-    else if (devUser) headers['x-dev-user'] = devUser;
+    const headers = authHeaders();
     let payload;
     if (form) payload = form;
     else if (body) { headers['content-type'] = 'application/json'; payload = JSON.stringify(body); }
@@ -113,12 +107,8 @@
     }
     return r.json();
   }
-
   async function fetchBlob(path) {
-    const headers = {};
-    if (tg && tg.initData) headers['x-init-data'] = tg.initData;
-    else if (devUser) headers['x-dev-user'] = devUser;
-    const r = await fetch(path, { headers });
+    const r = await fetch(path, { headers: authHeaders() });
     if (!r.ok) throw new Error('could not load file');
     return r.blob();
   }
@@ -132,7 +122,6 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.hidden = true; }, 2800);
   }
-
   function modal(html) {
     const m = $('modal');
     m.innerHTML = `<div class="box">${html}</div>`;
@@ -141,7 +130,7 @@
   }
   function closeModal() { $('modal').hidden = true; $('modal').innerHTML = ''; }
 
-  function ask({ title, text, input, okLabel = 'OK', danger = false }) {
+  function ask({ title, text, input, okLabel = 'OK', cancelLabel = 'Cancel', danger = false }) {
     return new Promise((resolve) => {
       modal(`
         <div class="title">${esc(title)}</div>
@@ -149,7 +138,7 @@
         ${input ? `<input id="askInput" placeholder="${esc(input)}">` : ''}
         <div class="btns">
           <button class="btn ${danger ? 'danger' : ''}" id="askOk">${esc(okLabel)}</button>
-          <button class="btn alt" id="askNo">Cancel</button>
+          <button class="btn alt" id="askNo">${esc(cancelLabel)}</button>
         </div>`);
       $('askOk').onclick = () => { const v = input ? $('askInput').value.trim() : true; closeModal(); resolve(v === '' ? true : v); };
       $('askNo').onclick = () => { closeModal(); resolve(false); };
@@ -157,146 +146,145 @@
   }
 
   const fail = (e) => {
-    if (e.message === 'profile_required') { toast(t('profile_needed')); S.tab = 'profile'; S.dealId = null; render(); return; }
+    if (e.message === 'profile_required') { toast(t('profile_needed')); S.tab = 'profile'; S.view = null; render(); return; }
     toast(e.message && e.message !== 'request failed' ? e.message : t('error'));
   };
 
   // ---------- data ----------
   async function loadAll() {
-    const [cfg, deals, orders] = await Promise.all([api('/api/config'), api('/api/deals'), api('/api/my/orders')]);
-    S.cfg = cfg; S.deals = deals; S.orders = orders; S.lang = cfg.user.lang === 'am' ? 'am' : 'en'; S.loaded = true;
+    const [cfg, products, orders] = await Promise.all([api('/api/config'), api('/api/products'), api('/api/my/orders')]);
+    S.cfg = cfg; S.products = products; S.orders = orders; S.lang = cfg.user.lang === 'am' ? 'am' : 'en'; S.loaded = true;
   }
-  async function refreshDeals() {
-    const [deals, orders] = await Promise.all([api('/api/deals'), api('/api/my/orders')]);
-    S.deals = deals; S.orders = orders;
+  async function refreshOrders() { S.orders = await api('/api/my/orders'); }
+  async function loadAdmin() {
+    const q = new URLSearchParams({ status: S.aFilter.status });
+    if (S.aFilter.product) q.set('product_id', S.aFilter.product);
+    const [aProducts, aOrders] = await Promise.all([api('/api/admin/products'), api('/api/admin/orders?' + q)]);
+    S.aProducts = aProducts; S.aOrders = aOrders;
   }
 
-  // ---------- views ----------
-  const STEPS = ['open', 'locked', 'ordered', 'shipped', 'arrived'];
+  // ---------- buyer views ----------
+  const STEP_KEYS = ['payment', 'paid', 'ordered', 'shipped', 'arrived', 'completed'];
+  const STEP_INDEX = { awaiting_payment: 0, receipt_uploaded: 0, paid: 1, ordered: 2, shipped: 3, arrived: 4, completed: 5 };
 
   function stepsHtml(status) {
-    if (status === 'cancelled') return `<span class="badge red">${t('d_cancelled')}</span>`;
-    const idx = status === 'closed' ? STEPS.length : STEPS.indexOf(status);
-    return `<div class="steps">${STEPS.map((s, i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t('d_' + s)}</span>`).join('')}</div>`;
+    if (status === 'cancelled') return `<span class="badge red">${t('s_cancelled')}</span>`;
+    const idx = STEP_INDEX[status];
+    return `<div class="steps">${STEP_KEYS.map((k, i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t('st_' + k)}</span>`).join('')}</div>`;
+  }
+  const statusBadge = (s) => `<span class="badge ${s === 'paid' || s === 'completed' ? 'green' : s === 'cancelled' ? 'red' : s === 'awaiting_payment' ? 'amber' : ''}">${t('s_' + s)}</span>`;
+
+  function cover(p) {
+    return p.image ? `<img class="cover" src="${esc(p.image)}" alt="">` : `<div class="cover ph">${esc((p.title || '?').trim().charAt(0).toUpperCase())}</div>`;
   }
 
-  function cover(d) {
-    return d.image ? `<img class="cover" src="${esc(d.image)}" alt="">` : `<div class="cover ph">${esc((d.title || '?').trim().charAt(0).toUpperCase())}</div>`;
-  }
-
-  function dealCard(d) {
-    const pct = Math.min(100, Math.round((d.total_qty / d.moq) * 100));
-    const left = d.status === 'open' ? timeLeft(d.deadline) : null;
-    const badge = d.status !== 'open' ? `<span class="badge ${d.status === 'cancelled' ? 'red' : 'amber'}">${t('d_' + d.status)}</span>` : '';
-    const mine = d.my_order ? `<span class="badge green">${t('you_joined', { n: d.my_order.qty })}</span>` : '';
+  function productCard(p) {
     return `
-      <div class="card tap" data-act="openDeal" data-id="${d.id}">
-        ${cover(d)}
+      <div class="card tap" data-act="openProduct" data-id="${p.id}">
+        ${cover(p)}
         <div class="pad">
-          <div class="row"><div class="title">${esc(d.title)}</div><div class="price">${money(d.current_price)} <small>${t('per', { unit: esc(d.unit) })}</small></div></div>
-          ${d.origin ? `<div class="muted">${esc(d.origin)}</div>` : ''}
-          <div class="bar"><i style="width:${pct}%"></i></div>
-          <div class="row"><span class="muted small">${t('joined_of', { n: d.total_qty, moq: d.moq })}</span><span class="muted small">${left ? t('time_left', { t: left }) : d.status === 'open' ? t('ended') : ''}</span></div>
-          <div style="margin-top:6px">${badge} ${mine}</div>
+          <div class="title">${esc(p.title)}</div>
+          ${p.origin ? `<div class="muted">${esc(p.origin)}</div>` : ''}
+          <div class="row" style="margin-top:6px">
+            <div class="price">${money(p.base_price)} <small>${t('per', { unit: esc(p.unit) })}</small></div>
+            <span class="badge">${t('min_order', { n: p.moq, unit: esc(p.unit) })}</span>
+          </div>
+          ${p.best_price < p.base_price ? `<div class="muted small">${t('down_to', { price: money(p.best_price) })}</div>` : ''}
         </div>
       </div>`;
   }
 
-  function viewDeals() {
-    const open = S.deals.filter((d) => d.status === 'open');
-    const past = S.deals.filter((d) => d.status !== 'open');
-    if (!S.deals.length) return `<div class="empty">${t('no_groups')}</div>`;
-    return `${open.length ? `<h2>${t('open_groups')}</h2>${open.map(dealCard).join('')}` : ''}
-            ${past.length ? `<h2>${t('past_groups')}</h2>${past.map(dealCard).join('')}` : ''}`;
+  function viewProducts() {
+    if (!S.products.length) return `<div class="empty">${t('no_products')}</div>`;
+    return `<p class="muted">${t('intro')}</p>${S.products.map(productCard).join('')}`;
   }
 
-  function paymentBlock(d, o) {
-    if (!o) return '';
-    let html = '';
-    if (o.status === 'awaiting_payment' || o.status === 'receipt_uploaded') {
-      html += `<h3>${t('amount_due')}</h3><div class="price">${money(o.total)}</div>`;
-      if (d.pay_by) html += `<p class="muted small">${t('pay_by', { d: esc(dateStr(d.pay_by)) })}</p>`;
-      html += `<h3>${t('how_to_pay')}</h3><div class="pre">${esc(S.cfg.payment_info || t('payment_missing'))}</div>`;
-      if (o.reject_note !== null && o.reject_note !== undefined && o.status === 'awaiting_payment' && o.reject_note !== '') {
-        html += `<div class="note red">${t('rejected_note', { note: esc(o.reject_note) })}</div>`;
-      }
-      html += `<p class="muted small">${t('receipt_hint')}</p>`;
-      html += `<button class="btn" data-act="pickReceipt" data-order="${o.id}">${o.status === 'receipt_uploaded' ? t('replace_receipt') : t('upload_receipt')}</button>`;
-    }
-    return html;
+  function tierIndexFor(p, qty) {
+    let idx = 0;
+    p.tiers.forEach((x, i) => { if (qty >= x.min_qty) idx = i; });
+    return idx;
+  }
+  function nextTierHint(p, qty) {
+    const idx = tierIndexFor(p, qty);
+    const next = p.tiers[idx + 1];
+    return next ? t('next_tier_hint', { n: next.min_qty - qty, price: money(next.price), unit: esc(p.unit) }) : '';
   }
 
-  function viewDeal() {
-    const d = S.deals.find((x) => x.id === S.dealId);
-    if (!d) return '';
-    const o = d.my_order;
-    const pct = Math.min(100, Math.round((d.total_qty / d.moq) * 100));
-    const open = d.status === 'open' && d.deadline > Date.now();
-    const left = timeLeft(d.deadline);
-    const tierRows = d.tiers.map((x) => {
-      const cur = d.locked_price != null ? x.price === d.locked_price : d.current_price === x.price;
-      return `<tr class="${cur ? 'cur' : ''}"><td>${t('units_plus', { n: x.min_qty })}</td><td>${money(x.price)}</td></tr>`;
-    }).join('');
-
-    let action = '';
-    if (open) {
-      const maxAttr = d.max_per_buyer > 0 ? `max="${d.max_per_buyer}"` : '';
-      action = `
-        <h3>${t('quantity')}</h3>
-        <div class="stepper">
-          <button data-act="qtyMinus">-</button>
-          <input id="qtyInput" type="number" inputmode="numeric" min="1" ${maxAttr} value="${S.qty}">
-          <button data-act="qtyPlus">+</button>
-        </div>
-        <div class="kv"><span>${t('est_total')}</span><span id="est">${money(S.qty * d.current_price)}</span></div>
-        <p class="muted small">${t('price_may_drop')}</p>
-        <div class="btns">
-          <button class="btn" data-act="join">${o ? t('update_qty') : t('join')}</button>
-          ${o ? `<button class="btn danger" data-act="leave">${t('leave')}</button>` : ''}
-        </div>`;
-    }
-
+  function viewProduct() {
+    const p = S.products.find((x) => x.id === S.view.id);
+    if (!p) return '';
+    const idx = tierIndexFor(p, S.qty);
+    const unitPrice = p.tiers[idx].price;
+    const tierRows = p.tiers.map((x, i) => `<tr class="${i === idx ? 'cur' : ''} tap" data-act="setQty" data-qty="${x.min_qty}" data-tier="${i}"><td>${t('units_plus', { n: x.min_qty, unit: esc(p.unit) })}</td><td>${money(x.price)}</td></tr>`).join('');
+    const hint = nextTierHint(p, S.qty);
     return `
       <button class="btn alt sm" data-act="back">${t('back')}</button>
       <div class="card" style="margin-top:10px">
-        ${cover(d)}
+        ${cover(p)}
         <div class="pad">
-          <div class="title">${esc(d.title)}</div>
-          <div class="row" style="margin-top:4px"><div class="price">${money(d.current_price)} <small>${t('per', { unit: esc(d.unit) })}</small></div>${d.locked_price != null ? `<span class="badge green">${t('final_price')}</span>` : `<span class="muted small">${t('price_now')}</span>`}</div>
-          ${stepsHtml(d.status)}
-          <div class="bar"><i style="width:${pct}%"></i></div>
-          <div class="row"><span class="muted small">${t('joined_of', { n: d.total_qty, moq: d.moq })}</span><span class="muted small">${open && left ? t('time_left', { t: left }) : ''}</span></div>
-          ${d.next_tier && open ? `<div class="note">${t('next_tier', { n: d.next_tier.min_qty - d.total_qty, price: money(d.next_tier.price) })}</div>` : ''}
+          <div class="title">${esc(p.title)}</div>
+          ${p.origin ? `<div class="muted">${esc(p.origin)}</div>` : ''}
         </div>
       </div>
-      ${d.description ? `<p>${esc(d.description).replace(/\n/g, '<br>')}</p>` : ''}
-      <div class="card"><div class="pad">
-        ${d.origin ? `<div class="kv"><span>${t('origin')}</span><span>${esc(d.origin)}</span></div>` : ''}
-        ${d.max_per_buyer > 0 ? `<div class="kv"><span>${t('max_per_buyer')}</span><span>${d.max_per_buyer}</span></div>` : ''}
-        ${d.eta_text ? `<div class="kv"><span>${t('eta')}</span><span>${esc(d.eta_text)}</span></div>` : ''}
-      </div></div>
-      <h3>${t('tiers')}</h3>
+      ${p.description ? `<p>${esc(p.description).replace(/\n/g, '<br>')}</p>` : ''}
+      ${p.lead_time ? `<div class="kv"><span>${t('lead_time')}</span><span>${esc(p.lead_time)}</span></div>` : ''}
+      <h3>${t('tiers_title')}</h3>
       <div class="card"><table class="tiers">${tierRows}</table></div>
-      <p class="muted small">${t('moq_note', { moq: d.moq })}</p>
-      ${o ? `<div class="card"><div class="pad"><div class="title">${t('your_order')}</div>
-        <div class="kv"><span>${t('quantity')}</span><span>${o.qty}</span></div>
-        <div class="kv"><span>${o.price_is_final ? t('final_price') : t('price_now')}</span><span>${money(o.unit_price)}</span></div>
-        <div class="kv"><span>${t('total')}</span><span>${money(o.total)}</span></div>
-        <p><span class="badge ${o.status === 'paid' ? 'green' : o.status === 'awaiting_payment' ? 'amber' : ''}">${t('s_' + o.status)}</span></p>
-        ${paymentBlock(d, o)}
-      </div></div>` : ''}
-      ${action}
+      <p class="muted small">${t('tap_tier')} ${t('moq_note', { n: p.moq, unit: esc(p.unit) })}</p>
+
+      <h3>${t('quantity')}</h3>
+      <div class="stepper">
+        <button data-act="qtyMinus">-</button>
+        <input id="qtyInput" type="number" inputmode="numeric" min="${p.moq}" ${p.max_qty > 0 ? `max="${p.max_qty}"` : ''} value="${S.qty}">
+        <button data-act="qtyPlus">+</button>
+      </div>
+      ${p.max_qty > 0 ? `<p class="muted small">${t('max_qty_note', { n: p.max_qty })}</p>` : ''}
+      <div class="kv"><span>${t('price_each', { unit: esc(p.unit) })}</span><span id="unitPrice">${money(unitPrice)}</span></div>
+      <div class="kv"><span><b>${t('total')}</b></span><span class="price" id="totalPrice">${money(unitPrice * S.qty)}</span></div>
+      <div class="note" id="tierHint" ${hint ? '' : 'hidden'}>${hint}</div>
+      <label>${t('delivery_note')}</label>
+      <textarea id="oNote" maxlength="300" placeholder="${esc(t('note_placeholder'))}"></textarea>
+      <p class="muted small">${t('price_locked_note')}</p>
+      <div class="btns"><button class="btn" data-act="placeOrder">${t('place_order')}</button></div>
       ${S.cfg.bot_username ? `<div class="btns"><button class="btn alt" data-act="share">${t('share')}</button></div>` : ''}`;
+  }
+
+  function paymentBlock(o) {
+    if (!['awaiting_payment', 'receipt_uploaded'].includes(o.status)) return '';
+    let html = `<h3>${t('amount_due')}</h3><div class="price">${money(o.total)}</div>`;
+    if (o.pay_by) html += `<p class="muted small">${t('pay_by', { d: esc(dateStr(o.pay_by)) })}</p>`;
+    html += `<h3>${t('how_to_pay')}</h3><div class="pre">${esc(S.cfg.payment_info || t('payment_missing'))}</div>`;
+    if (o.status === 'awaiting_payment' && o.reject_note) html += `<div class="note red">${t('rejected_note', { note: esc(o.reject_note) })}</div>`;
+    html += `<p class="muted small">${t('receipt_hint')}</p>`;
+    html += `<button class="btn" data-act="pickReceipt" data-order="${o.id}">${o.status === 'receipt_uploaded' ? t('replace_receipt') : t('upload_receipt')}</button>`;
+    return html;
+  }
+
+  function viewOrder() {
+    const o = S.orders.find((x) => x.id === S.view.id);
+    if (!o) return '';
+    return `
+      <button class="btn alt sm" data-act="back">${t('back')}</button>
+      <div class="card" style="margin-top:10px"><div class="pad">
+        <div class="row"><div class="title">${t('order_n', { id: o.id })}</div>${statusBadge(o.status)}</div>
+        <div class="muted">${esc(o.title)}</div>
+        ${stepsHtml(o.status)}
+        <div class="kv"><span>${t('quantity')}</span><span>${o.qty} ${esc(o.unit)}</span></div>
+        <div class="kv"><span>${t('price_each', { unit: esc(o.unit) })}</span><span>${money(o.unit_price)}</span></div>
+        <div class="kv"><span><b>${t('total')}</b></span><span class="price">${money(o.total)}</span></div>
+        ${o.eta_text ? `<div class="kv"><span>${t('eta')}</span><span>${esc(o.eta_text)}</span></div>` : ''}
+        ${o.note ? `<p class="muted small">${esc(o.note)}</p>` : ''}
+        ${paymentBlock(o)}
+        ${o.status === 'awaiting_payment' ? `<div class="btns"><button class="btn danger" data-act="cancelOrder" data-order="${o.id}">${t('cancel_order')}</button></div>` : ''}
+      </div></div>`;
   }
 
   function viewOrders() {
     if (!S.orders.length) return `<div class="empty">${t('orders_empty')}</div>`;
     return S.orders.map((o) => `
-      <div class="card tap" data-act="openDeal" data-id="${o.deal_id}"><div class="pad">
-        <div class="row"><div class="title">${esc(o.title)}</div><span class="badge ${o.deal_status === 'cancelled' ? 'red' : 'amber'}">${t('d_' + o.deal_status)}</span></div>
-        <div class="kv"><span>${t('quantity')}</span><span>${o.qty} x ${money(o.unit_price)}</span></div>
-        <div class="kv"><span>${t('total')}</span><span>${money(o.total)}</span></div>
-        <p><span class="badge ${o.status === 'paid' ? 'green' : o.status === 'awaiting_payment' ? 'amber' : ''}">${t('s_' + o.status)}</span></p>
+      <div class="card tap" data-act="openOrder" data-id="${o.id}"><div class="pad">
+        <div class="row"><div class="title">${esc(o.title)}</div>${statusBadge(o.status)}</div>
+        <div class="muted small">${t('order_n', { id: o.id })} | ${o.qty} ${esc(o.unit)} | ${money(o.total)}</div>
       </div></div>`).join('');
   }
 
@@ -312,148 +300,186 @@
       <div class="btns" style="margin-top:16px"><button class="btn" data-act="saveProfile">${t('save')}</button></div>`;
   }
 
-  // ---------- admin views ----------
-  function tierRowHtml(i) {
+  // ---------- admin views (English only) ----------
+  const NEXT = { paid: 'ordered', ordered: 'shipped', shipped: 'arrived', arrived: 'completed' };
+  const NEXT_LABEL = { ordered: 'Mark as ordered', shipped: 'Mark as shipped', arrived: 'Mark as arrived', completed: 'Mark as completed' };
+  const STATUS_FILTERS = [
+    ['active', 'All open orders'], ['receipt_uploaded', 'Receipt to check'], ['awaiting_payment', 'Waiting for payment'],
+    ['paid', 'Paid'], ['ordered', 'Ordered'], ['shipped', 'Shipped'], ['arrived', 'Arrived'],
+    ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['all', 'Everything'],
+  ];
+  const plain = (s) => s.replace('_', ' ');
+
+  function adminOrderCard(o) {
+    const nxt = NEXT[o.status];
+    return `
+      <div class="card"><div class="pad">
+        <div class="row"><b>#${o.id} ${esc(o.title)}</b><span class="badge ${o.status === 'paid' || o.status === 'completed' ? 'green' : o.status === 'receipt_uploaded' ? 'amber' : o.status === 'cancelled' ? 'red' : ''}">${esc(plain(o.status))}</span></div>
+        <div class="muted small">${esc(o.name)}${o.username ? ` (<a href="https://t.me/${esc(o.username)}">@${esc(o.username)}</a>)` : ''} | ${esc(o.phone || 'no phone')}${o.business_name ? ' | ' + esc(o.business_name) : ''}</div>
+        <div class="kv"><span>${o.qty} ${esc(o.unit)} at ${money(o.unit_price)}</span><span><b>${money(o.total)}</b></span></div>
+        ${o.note ? `<p class="muted small">Note: ${esc(o.note)}</p>` : ''}
+        <div>
+          ${o.has_receipt ? `<button class="btn alt sm" data-act="viewReceipt" data-order="${o.id}">View receipt</button>` : ''}
+          ${['receipt_uploaded', 'awaiting_payment'].includes(o.status) ? `<button class="btn sm" data-act="confirmOrder" data-order="${o.id}">Confirm payment</button>` : ''}
+          ${o.status === 'receipt_uploaded' ? `<button class="btn danger sm" data-act="rejectOrder" data-order="${o.id}">Reject receipt</button>` : ''}
+          ${nxt ? `<button class="btn sm" data-act="nextStep" data-order="${o.id}" data-next="${nxt}">${NEXT_LABEL[nxt]}</button>` : ''}
+          ${!['completed', 'cancelled'].includes(o.status) ? `<button class="btn danger sm" data-act="adminCancel" data-order="${o.id}">Cancel order</button>` : ''}
+        </div>
+      </div></div>`;
+  }
+
+  function adminOrdersView() {
+    const f = S.aFilter;
+    const nxt = NEXT[f.status];
+    const matching = nxt ? S.aOrders.filter((o) => o.status === f.status) : [];
+    return `
+      <label>Show</label>
+      <select id="aStatus">${STATUS_FILTERS.map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <label>Product</label>
+      <select id="aProduct"><option value="">All products</option>${S.aProducts.map((p) => `<option value="${p.id}" ${String(f.product) === String(p.id) ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select>
+      ${matching.length ? `<div class="btns"><button class="btn alt" data-act="bulkNext" data-next="${nxt}">${NEXT_LABEL[nxt]} for all ${matching.length} shown</button></div>` : ''}
+      <h3>${S.aOrders.length} order${S.aOrders.length === 1 ? '' : 's'}</h3>
+      ${S.aOrders.map(adminOrderCard).join('') || '<p class="muted">No orders here.</p>'}`;
+  }
+
+  function tierRowHtml(minQty, price) {
     return `<div class="tier-row">
-      <input class="tMin" type="number" inputmode="numeric" min="1" placeholder="From units" ${i === 0 ? 'value="1" disabled' : ''}>
-      <input class="tPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Price (ETB)">
-      ${i > 0 ? '<button class="btn alt sm x" data-act="removeTier">x</button>' : '<span class="x"></span>'}
+      <input class="tMin" type="number" inputmode="numeric" min="1" placeholder="From units" value="${esc(minQty)}">
+      <input class="tPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Price (ETB)" value="${esc(price)}">
+      <button class="btn alt sm x" data-act="removeTier">x</button>
     </div>`;
   }
 
-  function defaultDeadline() {
-    const d = new Date(Date.now() + 7 * 86400000);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
+  function productFormHtml(f) {
+    const editing = !!f.id;
+    return `
+      <h2>${editing ? 'Edit product' : 'New product'}</h2>
+      <label>Product name</label><input id="fTitle" maxlength="120" value="${esc(f.title)}">
+      <label>Description</label><textarea id="fDesc" maxlength="2000" placeholder="Specs, model, what is included, quality notes">${esc(f.description)}</textarea>
+      <label>Origin</label><input id="fOrigin" placeholder="e.g. Guangzhou, China" value="${esc(f.origin)}">
+      <label>Unit (it must read well after a number, like "20 pcs")</label><input id="fUnit" placeholder="pcs, sets, cartons, kg" value="${esc(f.unit || 'pcs')}">
+      <label>Photo</label>
+      ${f.image ? `<img class="thumb" src="${esc(f.image)}" alt=""><label class="check"><input type="checkbox" id="fRemoveImage"> Remove current photo</label>` : ''}
+      <input id="fImage" type="file" accept="image/*">
+      <label>Minimum order quantity (MOQ)</label><input id="fMoq" type="number" inputmode="numeric" min="1" value="${esc(f.moq)}">
+      <label>Maximum per order (0 for no limit)</label><input id="fMax" type="number" inputmode="numeric" min="0" value="${esc(f.max_qty || 0)}">
+      <label>Price per unit at the MOQ (ETB)</label><input id="fBase" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(f.base)}">
+      <label>Cheaper prices for bigger orders (optional, price must keep dropping)</label>
+      <div id="fTiers">${f.extra.map((x) => tierRowHtml(x.min_qty, x.price)).join('')}</div>
+      <button class="btn alt sm" data-act="addTier">Add price tier</button>
+      <label>Delivery time (text)</label><input id="fLead" placeholder="e.g. about 35 days after payment" value="${esc(f.lead_time)}">
+      <label class="check"><input type="checkbox" id="fActive" ${f.active ? 'checked' : ''}> Visible to buyers</label>
+      ${editing ? '<p class="muted small">Changes apply to new orders only. Orders already placed keep their price.</p>' : ''}
+      <div class="btns" style="margin-top:14px">
+        <button class="btn" data-act="saveProduct">${editing ? 'Save changes' : 'Publish product'}</button>
+        <button class="btn alt" data-act="closeForm">Cancel</button>
+      </div>`;
   }
 
-  const NEXT = { open: ['locked'], locked: ['ordered'], ordered: ['shipped'], shipped: ['arrived'], arrived: ['closed'] };
-  const NEXT_LABEL = { locked: 'Lock group', ordered: 'Mark as ordered', shipped: 'Mark as shipped', arrived: 'Mark as arrived', closed: 'Close' };
+  function adminProductsView() {
+    if (S.form) return productFormHtml(S.form);
+    return `
+      <div class="btns"><button class="btn" data-act="newProduct">Add a product</button></div>
+      ${S.aProducts.map((p) => `
+        <div class="card"><div class="pad">
+          <div class="row"><b>${esc(p.title)}</b><span class="badge ${p.active ? 'green' : ''}">${p.active ? 'visible' : 'hidden'}</span></div>
+          <div class="muted small">MOQ ${p.moq} ${esc(p.unit)} | ${money(p.base_price)}${p.best_price < p.base_price ? ' down to ' + money(p.best_price) : ''} | ${p.orders} order${p.orders === 1 ? '' : 's'}</div>
+          <div>
+            <button class="btn sm" data-act="editProduct" data-id="${p.id}">Edit</button>
+            <button class="btn alt sm" data-act="toggleActive" data-id="${p.id}">${p.active ? 'Hide' : 'Show'}</button>
+            <button class="btn danger sm" data-act="deleteProduct" data-id="${p.id}">Delete</button>
+          </div>
+        </div></div>`).join('') || '<p class="muted">No products yet.</p>'}`;
+  }
 
-  function adminOrdersHtml(id) {
-    const list = S.adminOrders[id];
-    if (!list) return '<p class="muted">Loading</p>';
-    if (!list.length) return '<p class="muted">No buyers yet.</p>';
-    return list.map((o) => `
-      <div class="card"><div class="pad">
-        <div class="row"><b>${esc(o.name)}</b><span class="badge ${o.status === 'paid' ? 'green' : o.status === 'receipt_uploaded' ? 'amber' : ''}">${esc(o.status.replace('_', ' '))}</span></div>
-        <div class="muted small">${o.username ? `<a href="https://t.me/${esc(o.username)}">@${esc(o.username)}</a> | ` : ''}${esc(o.phone || 'no phone')}${o.business_name ? ' | ' + esc(o.business_name) : ''}</div>
-        <div class="kv"><span>${o.qty} units</span><span>${money(o.total)}</span></div>
-        ${o.has_receipt ? `<button class="btn alt sm" data-act="viewReceipt" data-order="${o.id}">View receipt</button>` : ''}
-        ${['receipt_uploaded', 'awaiting_payment'].includes(o.status) ? `<button class="btn sm" data-act="confirmOrder" data-order="${o.id}" data-deal="${id}">Confirm payment</button>` : ''}
-        ${o.status === 'receipt_uploaded' ? `<button class="btn danger sm" data-act="rejectOrder" data-order="${o.id}" data-deal="${id}">Reject</button>` : ''}
-        <button class="btn danger sm" data-act="cancelOrder" data-order="${o.id}" data-deal="${id}">Remove</button>
-      </div></div>`).join('');
+  function adminSettingsView() {
+    return `
+      <h2>Payment details</h2>
+      <p class="muted small">Shown to buyers on their order page. Add the bank or mobile money accounts you use.</p>
+      <textarea id="payInfo" placeholder="Bank name, account name, account number, Telebirr number">${esc(S.cfg.payment_info)}</textarea>
+      <div class="btns"><button class="btn" data-act="savePay">Save payment details</button></div>`;
   }
 
   function viewAdmin() {
-    const manage = S.deals.map((d) => {
-      const nexts = NEXT[d.status] || [];
-      const canCancel = ['open', 'locked'].includes(d.status);
-      return `
-      <div class="card"><div class="pad">
-        <div class="row"><b>${esc(d.title)}</b><span class="badge amber">${esc(d.status)}</span></div>
-        <div class="muted small">${d.total_qty} of ${d.moq} units | ${d.buyers} buyers | ${money(d.current_price)}${d.status === 'open' ? ' | ends ' + esc(dateStr(d.deadline)) : ''}</div>
-        <div>
-          ${nexts.map((n) => `<button class="btn sm" data-act="dealStatus" data-id="${d.id}" data-next="${n}">${NEXT_LABEL[n]}</button>`).join('')}
-          ${canCancel ? `<button class="btn danger sm" data-act="dealStatus" data-id="${d.id}" data-next="cancelled">Cancel group</button>` : ''}
-          <button class="btn alt sm" data-act="adminOrders" data-id="${d.id}">${S.adminOpen === d.id ? 'Hide buyers' : 'Buyers'}</button>
-        </div>
-        ${S.adminOpen === d.id ? `<div style="margin-top:10px">${adminOrdersHtml(d.id)}</div>` : ''}
-      </div></div>`;
-    }).join('');
-
-    return `
-      <h2>Payment details</h2>
-      <p class="muted small">Shown to buyers after a group locks. Add the bank or mobile money accounts you use.</p>
-      <textarea id="payInfo" placeholder="Bank name, account name, account number, Telebirr number">${esc(S.cfg.payment_info)}</textarea>
-      <div class="btns"><button class="btn alt" data-act="savePay">Save payment details</button></div>
-
-      <h2>Manage groups</h2>
-      ${manage || '<p class="muted">No groups yet.</p>'}
-
-      <h2>New group</h2>
-      <label>Product name</label><input id="nTitle" maxlength="120">
-      <label>Description</label><textarea id="nDesc" maxlength="2000" placeholder="Specs, model, what is included, quality notes"></textarea>
-      <label>Origin</label><input id="nOrigin" placeholder="e.g. Guangzhou, China">
-      <label>Sold per (unit)</label><input id="nUnit" placeholder="piece, carton, set" value="piece">
-      <label>Photo</label><input id="nImage" type="file" accept="image/*">
-      <label>Minimum units for the group to go ahead</label><input id="nMoq" type="number" inputmode="numeric" min="1">
-      <label>Maximum units per buyer (0 for no limit)</label><input id="nMax" type="number" inputmode="numeric" min="0" value="0">
-      <label>Join deadline</label><input id="nDeadline" type="datetime-local" value="${defaultDeadline()}">
-      <label>Expected arrival (text)</label><input id="nEta" placeholder="e.g. about 35 days after the group locks">
-      <label>Price tiers (price must drop as units rise)</label>
-      <div id="tiers">${Array.from({ length: S.tierRows }, (_, i) => tierRowHtml(i)).join('')}</div>
-      <button class="btn alt sm" data-act="addTier">Add tier</button>
-      <div class="btns" style="margin-top:14px"><button class="btn" data-act="createDeal">Publish group</button></div>`;
+    const segs = [['orders', 'Orders'], ['products', 'Products'], ['settings', 'Settings']];
+    const body = S.aTab === 'orders' ? adminOrdersView() : S.aTab === 'products' ? adminProductsView() : adminSettingsView();
+    return `<div class="seg">${segs.map(([k, l]) => `<button class="${S.aTab === k ? 'on' : ''}" data-act="aTab" data-tab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
   // ---------- render ----------
   function render() {
     const view = $('view');
     if (!S.loaded) { view.innerHTML = `<div class="empty">${t('loading')}</div>`; return; }
-    $('brandSub').textContent = '';
-    if (S.dealId) view.innerHTML = viewDeal();
-    else if (S.tab === 'deals') view.innerHTML = viewDeals();
+    if (S.view && S.view.type === 'product') view.innerHTML = viewProduct();
+    else if (S.view && S.view.type === 'order') view.innerHTML = viewOrder();
+    else if (S.tab === 'products') view.innerHTML = viewProducts();
     else if (S.tab === 'orders') view.innerHTML = viewOrders();
     else if (S.tab === 'profile') view.innerHTML = viewProfile();
     else if (S.tab === 'admin' && S.cfg.is_admin) view.innerHTML = viewAdmin();
 
-    const tabs = [['deals', 'tab_deals'], ['orders', 'tab_orders'], ['profile', 'tab_profile']];
+    const tabs = [['products', 'tab_products'], ['orders', 'tab_orders'], ['profile', 'tab_profile']];
     if (S.cfg.is_admin) tabs.push(['admin', 'tab_admin']);
-    $('nav').innerHTML = tabs.map(([k, label]) => `<button class="${S.tab === k && !S.dealId ? 'on' : ''}" data-act="tab" data-tab="${k}">${t(label)}</button>`).join('');
+    $('nav').innerHTML = tabs.map(([k, label]) => `<button class="${S.tab === k && !S.view ? 'on' : ''}" data-act="tab" data-tab="${k}">${t(label)}</button>`).join('');
 
-    if (tg && tg.BackButton) {
-      if (S.dealId) tg.BackButton.show(); else tg.BackButton.hide();
-    }
+    if (tg && tg.BackButton) { if (S.view) tg.BackButton.show(); else tg.BackButton.hide(); }
   }
 
-  function goBack() { S.dealId = null; render(); window.scrollTo(0, 0); }
+  function goBack() { S.view = null; render(); window.scrollTo(0, 0); }
   if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
 
-  function clampQty(v) {
-    const d = S.deals.find((x) => x.id === S.dealId);
+  function clampQty(p, v) {
     let n = Math.floor(Number(v));
-    if (!Number.isFinite(n) || n < 1) n = 1;
-    if (d && d.max_per_buyer > 0 && n > d.max_per_buyer) n = d.max_per_buyer;
+    if (!Number.isFinite(n) || n < p.moq) n = p.moq;
+    if (p.max_qty > 0 && n > p.max_qty) n = p.max_qty;
     return n;
   }
-  function setQty(v) {
-    S.qty = clampQty(v);
-    const d = S.deals.find((x) => x.id === S.dealId);
-    const input = $('qtyInput');
-    if (input) input.value = S.qty;
-    const est = $('est');
-    if (est && d) est.textContent = money(S.qty * d.current_price);
+  function setQty(v, fromTyping) {
+    const p = S.products.find((x) => x.id === S.view.id);
+    if (!p) return;
+    // while typing, allow values below the MOQ until the field loses focus, so the number can be edited
+    S.qty = fromTyping && Number(v) < p.moq ? Math.max(1, Math.floor(Number(v)) || 1) : clampQty(p, v);
+    const idx = tierIndexFor(p, S.qty);
+    const unitPrice = p.tiers[idx].price;
+    if (!fromTyping) $('qtyInput').value = S.qty;
+    $('unitPrice').textContent = money(unitPrice);
+    $('totalPrice').textContent = money(unitPrice * S.qty);
+    document.querySelectorAll('.tiers tr').forEach((r) => r.classList.toggle('cur', Number(r.dataset.tier) === idx));
+    const hint = nextTierHint(p, S.qty);
+    $('tierHint').textContent = hint;
+    $('tierHint').hidden = !hint;
   }
+
+  const blankForm = () => ({ id: null, title: '', description: '', origin: '', unit: 'pcs', image: null, moq: '', max_qty: 0, base: '', extra: [], lead_time: '', active: true });
 
   // ---------- actions ----------
   const H = {
-    tab(el) { S.tab = el.dataset.tab; S.dealId = null; render(); window.scrollTo(0, 0); },
-    openDeal(el) {
-      S.dealId = Number(el.dataset.id);
-      const d = S.deals.find((x) => x.id === S.dealId);
-      S.qty = d && d.my_order ? d.my_order.qty : 1;
-      render(); window.scrollTo(0, 0);
+    tab(el) { S.tab = el.dataset.tab; S.view = null; S.form = null; render(); window.scrollTo(0, 0); if (S.tab === 'admin') adminReload(); },
+    openProduct(el) {
+      const p = S.products.find((x) => x.id === Number(el.dataset.id));
+      if (!p) return;
+      S.view = { type: 'product', id: p.id }; S.qty = p.moq; render(); window.scrollTo(0, 0);
     },
+    openOrder(el) { S.view = { type: 'order', id: Number(el.dataset.id) }; render(); window.scrollTo(0, 0); },
     back: goBack,
     qtyMinus() { setQty(S.qty - 1); },
     qtyPlus() { setQty(S.qty + 1); },
-    async join() {
+    setQty(el) { setQty(Number(el.dataset.qty)); },
+    async placeOrder() {
+      const p = S.products.find((x) => x.id === S.view.id);
+      setQty(S.qty);
       try {
-        await api(`/api/deals/${S.dealId}/join`, { method: 'POST', body: { qty: S.qty } });
-        await refreshDeals(); toast(t('joined_ok')); render();
-      } catch (e) { fail(e); }
-    },
-    async leave() {
-      const ok = await ask({ title: t('confirm_leave'), okLabel: t('leave'), danger: true });
-      if (!ok) return;
-      try {
-        await api(`/api/deals/${S.dealId}/leave`, { method: 'POST' });
-        await refreshDeals(); S.qty = 1; toast(t('left_ok')); render();
+        const o = await api(`/api/products/${p.id}/order`, { method: 'POST', body: { qty: S.qty, note: $('oNote').value } });
+        await refreshOrders();
+        S.view = { type: 'order', id: o.id }; S.tab = 'orders';
+        toast(t('order_placed')); render(); window.scrollTo(0, 0);
       } catch (e) { fail(e); }
     },
     pickReceipt(el) { $('receiptInput').dataset.order = el.dataset.order; $('receiptInput').click(); },
+    async cancelOrder(el) {
+      const ok = await ask({ title: t('confirm_cancel'), okLabel: t('yes'), cancelLabel: t('no'), danger: true });
+      if (!ok) return;
+      try { await api(`/api/orders/${el.dataset.order}/cancel`, { method: 'POST' }); await refreshOrders(); toast(t('cancelled_ok')); render(); } catch (e) { fail(e); }
+    },
     async saveProfile() {
       try {
         const lang = $('pLang').value;
@@ -462,66 +488,31 @@
       } catch (e) { fail(e); }
     },
     share() {
-      const link = `https://t.me/${S.cfg.bot_username}?startapp=deal_${S.dealId}`;
-      const d = S.deals.find((x) => x.id === S.dealId);
-      const text = `${d.title}: ${money(d.current_price)} per ${d.unit}`;
+      const p = S.products.find((x) => x.id === S.view.id);
+      const link = `https://t.me/${S.cfg.bot_username}?startapp=product_${p.id}`;
+      const text = `${p.title}: ${money(p.base_price)} ${t('per', { unit: p.unit })}, ${t('min_order', { n: p.moq, unit: p.unit })}`;
       const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
       if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
     },
 
     // admin
-    addTier() { S.tierRows += 1; const keep = snapshotForm(); render(); restoreForm(keep); },
-    removeTier(el) { el.closest('.tier-row').remove(); },
-    async savePay() {
-      try { await api('/api/admin/settings', { method: 'PUT', body: { payment_info: $('payInfo').value } }); S.cfg.payment_info = $('payInfo').value; toast('Saved'); }
-      catch (e) { fail(e); }
+    aTab(el) { S.aTab = el.dataset.tab; S.form = null; render(); adminReload(); },
+    async confirmOrder(el) { await adminOrderAction(el.dataset.order, 'confirm'); },
+    async rejectOrder(el) {
+      const note = await ask({ title: 'Reject receipt', text: 'Tell the buyer why. They receive this in Telegram.', input: 'Reason', okLabel: 'Reject', danger: true });
+      if (!note) return;
+      await adminOrderAction(el.dataset.order, 'reject', { note: note === true ? '' : note });
     },
-    async createDeal() {
-      try {
-        const tiers = [...document.querySelectorAll('#tiers .tier-row')].map((r, i) => ({
-          min_qty: i === 0 ? 1 : Number(r.querySelector('.tMin').value),
-          price: Number(r.querySelector('.tPrice').value),
-        }));
-        const f = new FormData();
-        f.append('title', $('nTitle').value); f.append('description', $('nDesc').value);
-        f.append('origin', $('nOrigin').value); f.append('unit', $('nUnit').value);
-        f.append('moq', $('nMoq').value); f.append('max_per_buyer', $('nMax').value);
-        f.append('deadline', String(new Date($('nDeadline').value).getTime()));
-        f.append('eta_text', $('nEta').value); f.append('tiers', JSON.stringify(tiers));
-        if ($('nImage').files[0]) f.append('image', $('nImage').files[0]);
-        await api('/api/admin/deals', { method: 'POST', form: f });
-        await refreshDeals(); S.tierRows = 2; toast('Group published'); render(); window.scrollTo(0, 0);
-      } catch (e) { fail(e); }
+    async adminCancel(el) {
+      const ok = await ask({ title: 'Cancel this order?', text: 'The buyer is notified. Refunds are handled by you.', okLabel: 'Cancel order', cancelLabel: 'Keep', danger: true });
+      if (!ok) return;
+      await adminOrderAction(el.dataset.order, 'cancel');
     },
-    async dealStatus(el) {
-      const id = Number(el.dataset.id), next = el.dataset.next;
-      const labels = { cancelled: 'Cancel this group? Buyers will be notified.', locked: 'Lock the group now? The price becomes final and buyers are asked to pay.' };
-      let body = { status: next };
-      if (next === 'shipped') {
-        const eta = await ask({ title: 'Mark as shipped', text: 'Expected arrival shown to buyers (optional).', input: 'e.g. 12 November', okLabel: 'Mark shipped' });
-        if (!eta) return;
-        if (eta !== true) body.eta_text = eta;
-      } else if (labels[next]) {
-        const ok = await ask({ title: labels[next], okLabel: 'Yes', danger: next === 'cancelled' });
-        if (!ok) return;
-      }
-      try {
-        await api(`/api/admin/deals/${id}/status`, { method: 'POST', body });
-      } catch (e) {
-        if (e.data && e.data.can_force) {
-          const ok = await ask({ title: 'Minimum not reached', text: 'The group has fewer units than the minimum. Lock it anyway?', okLabel: 'Lock anyway', danger: true });
-          if (!ok) return;
-          try { await api(`/api/admin/deals/${id}/status`, { method: 'POST', body: { ...body, force: true } }); } catch (e2) { return fail(e2); }
-        } else return fail(e);
-      }
-      await refreshDeals(); delete S.adminOrders[id]; render();
-      if (S.adminOpen === id) loadAdminOrders(id);
-    },
-    adminOrders(el) {
-      const id = Number(el.dataset.id);
-      S.adminOpen = S.adminOpen === id ? null : id;
-      render();
-      if (S.adminOpen) loadAdminOrders(id);
+    async nextStep(el) { await advance([Number(el.dataset.order)], el.dataset.next); },
+    async bulkNext(el) {
+      const from = S.aFilter.status;
+      const ids = S.aOrders.filter((o) => o.status === from).map((o) => o.id);
+      await advance(ids, el.dataset.next);
     },
     async viewReceipt(el) {
       try {
@@ -532,44 +523,87 @@
       } catch (e) { fail(e); }
     },
     closeModal,
-    async confirmOrder(el) { await orderAction(el, 'confirm'); },
-    async rejectOrder(el) {
-      const note = await ask({ title: 'Reject receipt', text: 'Tell the buyer why (they get this in Telegram).', input: 'Reason', okLabel: 'Reject', danger: true });
-      if (!note) return;
-      await orderAction(el, 'reject', { note: note === true ? '' : note });
+
+    newProduct() { S.form = blankForm(); render(); window.scrollTo(0, 0); },
+    editProduct(el) {
+      const p = S.aProducts.find((x) => x.id === Number(el.dataset.id));
+      if (!p) return;
+      S.form = { id: p.id, title: p.title, description: p.description, origin: p.origin, unit: p.unit, image: p.image, moq: p.moq, max_qty: p.max_qty, base: p.tiers[0].price, extra: p.tiers.slice(1), lead_time: p.lead_time, active: p.active };
+      render(); window.scrollTo(0, 0);
     },
-    async cancelOrder(el) {
-      const ok = await ask({ title: 'Remove this buyer from the group?', okLabel: 'Remove', danger: true });
+    closeForm() { S.form = null; render(); },
+    addTier() { $('fTiers').insertAdjacentHTML('beforeend', tierRowHtml('', '')); },
+    removeTier(el) { el.closest('.tier-row').remove(); },
+    async saveProduct() {
+      try {
+        const moq = Number($('fMoq').value);
+        const tiers = [{ min_qty: moq, price: Number($('fBase').value) }];
+        document.querySelectorAll('#fTiers .tier-row').forEach((r) => {
+          const m = r.querySelector('.tMin').value, pr = r.querySelector('.tPrice').value;
+          if (m || pr) tiers.push({ min_qty: Number(m), price: Number(pr) });
+        });
+        const f = new FormData();
+        f.append('title', $('fTitle').value); f.append('description', $('fDesc').value);
+        f.append('origin', $('fOrigin').value); f.append('unit', $('fUnit').value);
+        f.append('moq', String(moq)); f.append('max_qty', $('fMax').value || '0');
+        f.append('lead_time', $('fLead').value); f.append('active', $('fActive').checked ? '1' : '0');
+        f.append('tiers', JSON.stringify(tiers));
+        if ($('fImage').files[0]) f.append('image', $('fImage').files[0]);
+        if ($('fRemoveImage') && $('fRemoveImage').checked) f.append('remove_image', '1');
+        const editing = S.form.id;
+        await api(editing ? `/api/admin/products/${editing}` : '/api/admin/products', { method: editing ? 'PUT' : 'POST', form: f });
+        S.form = null;
+        S.products = await api('/api/products');
+        await loadAdmin(); toast(editing ? 'Saved' : 'Product published'); render(); window.scrollTo(0, 0);
+      } catch (e) { fail(e); }
+    },
+    async toggleActive(el) {
+      const p = S.aProducts.find((x) => x.id === Number(el.dataset.id));
+      if (!p) return;
+      try {
+        const f = new FormData();
+        f.append('title', p.title); f.append('description', p.description || ''); f.append('origin', p.origin || ''); f.append('unit', p.unit);
+        f.append('moq', String(p.moq)); f.append('max_qty', String(p.max_qty)); f.append('lead_time', p.lead_time || '');
+        f.append('tiers', JSON.stringify(p.tiers)); f.append('active', p.active ? '0' : '1');
+        await api(`/api/admin/products/${p.id}`, { method: 'PUT', form: f });
+        S.products = await api('/api/products'); await loadAdmin(); render();
+      } catch (e) { fail(e); }
+    },
+    async deleteProduct(el) {
+      const ok = await ask({ title: 'Delete this product?', text: 'This cannot be undone. A product with orders cannot be deleted, hide it instead.', okLabel: 'Delete', danger: true });
       if (!ok) return;
-      await orderAction(el, 'cancel');
+      try {
+        await api(`/api/admin/products/${el.dataset.id}`, { method: 'DELETE' });
+        S.products = await api('/api/products'); await loadAdmin(); render();
+      } catch (e) { fail(e); }
+    },
+    async savePay() {
+      try { await api('/api/admin/settings', { method: 'PUT', body: { payment_info: $('payInfo').value } }); S.cfg.payment_info = $('payInfo').value; toast('Saved'); }
+      catch (e) { fail(e); }
     },
   };
 
-  async function orderAction(el, action, body) {
+  async function adminReload() {
+    try { await loadAdmin(); render(); } catch (e) { fail(e); }
+  }
+  async function adminOrderAction(id, action, body) {
+    try { await api(`/api/admin/orders/${id}/${action}`, { method: 'POST', body: body || {} }); await loadAdmin(); render(); } catch (e) { fail(e); }
+  }
+  async function advance(ids, status) {
+    if (!ids.length) return;
+    let eta;
+    if (status === 'shipped') {
+      eta = await ask({ title: 'Mark as shipped', text: 'Expected arrival shown to the buyers (optional).', input: 'e.g. 12 November', okLabel: 'Mark shipped' });
+      if (!eta) return;
+    } else if (ids.length > 1) {
+      const ok = await ask({ title: `${NEXT_LABEL[status]} for ${ids.length} orders?`, text: 'Each buyer is notified in Telegram.', okLabel: 'Yes, update all' });
+      if (!ok) return;
+    }
     try {
-      await api(`/api/admin/orders/${el.dataset.order}/${action}`, { method: 'POST', body: body || {} });
-      const id = Number(el.dataset.deal);
-      await refreshDeals(); await loadAdminOrders(id, false); render();
+      const r = await api('/api/admin/orders/advance', { method: 'POST', body: { ids, status, eta_text: eta && eta !== true ? eta : '' } });
+      toast(`${r.updated} updated`);
+      await loadAdmin(); render();
     } catch (e) { fail(e); }
-  }
-
-  async function loadAdminOrders(id, rerender = true) {
-    try { S.adminOrders[id] = await api(`/api/admin/deals/${id}/orders`); } catch (e) { return fail(e); }
-    if (rerender) render();
-  }
-
-  // keep typed values when the new-group form re-renders
-  function snapshotForm() {
-    const ids = ['nTitle', 'nDesc', 'nOrigin', 'nUnit', 'nMoq', 'nMax', 'nDeadline', 'nEta', 'payInfo'];
-    const vals = Object.fromEntries(ids.map((i) => [i, $(i) ? $(i).value : '']));
-    vals.tiers = [...document.querySelectorAll('#tiers .tier-row')].map((r) => [r.querySelector('.tMin').value, r.querySelector('.tPrice').value]);
-    return vals;
-  }
-  function restoreForm(v) {
-    Object.keys(v).forEach((k) => { if (k !== 'tiers' && $(k)) $(k).value = v[k]; });
-    document.querySelectorAll('#tiers .tier-row').forEach((r, i) => {
-      if (v.tiers[i]) { if (i > 0) r.querySelector('.tMin').value = v.tiers[i][0]; r.querySelector('.tPrice').value = v.tiers[i][1]; }
-    });
   }
 
   document.addEventListener('click', (e) => {
@@ -577,7 +611,12 @@
     if (!el || !H[el.dataset.act]) return;
     H[el.dataset.act](el, e);
   });
-  document.addEventListener('input', (e) => { if (e.target.id === 'qtyInput') setQty(e.target.value); });
+  document.addEventListener('input', (e) => { if (e.target.id === 'qtyInput') setQty(e.target.value, true); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'qtyInput') setQty(e.target.value);
+    if (e.target.id === 'aStatus') { S.aFilter.status = e.target.value; adminReload(); }
+    if (e.target.id === 'aProduct') { S.aFilter.product = e.target.value; adminReload(); }
+  });
 
   $('receiptInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -588,19 +627,23 @@
       const f = new FormData();
       f.append('receipt', file);
       await api(`/api/orders/${order}/receipt`, { method: 'POST', form: f });
-      await refreshDeals(); toast(t('uploaded')); render();
+      await refreshOrders(); toast(t('uploaded')); render();
     } catch (err) { fail(err); }
   });
+
+  // brand logo: shown only if public/brand/logo.png exists
+  const logo = $('logo');
+  if (logo) { logo.onload = () => { logo.hidden = false; }; logo.onerror = () => logo.remove(); }
 
   // ---------- start ----------
   render();
   loadAll().then(() => {
+    if (S.cfg.has_logo && logo) logo.src = '/brand/logo.png';
     const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
-    const m = sp && /^deal_(\d+)$/.exec(sp);
-    if (m && S.deals.some((d) => d.id === Number(m[1]))) {
-      S.dealId = Number(m[1]);
-      const d = S.deals.find((x) => x.id === S.dealId);
-      S.qty = d && d.my_order ? d.my_order.qty : 1;
+    const m = sp && /^product_(\d+)$/.exec(sp);
+    if (m) {
+      const p = S.products.find((x) => x.id === Number(m[1]));
+      if (p) { S.view = { type: 'product', id: p.id }; S.qty = p.moq; }
     }
     render();
   }).catch((e) => {
