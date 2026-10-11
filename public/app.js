@@ -39,6 +39,7 @@
       profile_title: 'Your details', name: 'Name', phone: 'Phone number',
       business: 'Business name (or planned business)', language: 'Language',
       save: 'Save', saved: 'Saved', uploaded: 'Receipt uploaded',
+      pay_online: 'Pay online', pay_or: 'Or pay by bank transfer and upload the receipt below.', pay_checking: 'Checking your payment. This updates by itself.', pay_done: 'Payment received',
       hello: 'Hello, {name}', hero_title: 'Buy in bulk. Pay less per unit.', n_products: '{n} products', open_orders: '{n} open orders',
       search_ph: 'Search products', no_match: 'No products match your search.', save_up_to: 'Save up to {pct}%', order_total: 'Order total',
       loading: 'Loading', error: 'Something went wrong. Try again.', yes: 'Yes', no: 'No',
@@ -72,6 +73,7 @@
       profile_title: 'የእርስዎ መረጃ', name: 'ስም', phone: 'ስልክ ቁጥር',
       business: 'የንግድ ስም (ወይም የታቀደ ንግድ)', language: 'ቋንቋ',
       save: 'አስቀምጥ', saved: 'ተቀምጧል', uploaded: 'ደረሰኝ ተጭኗል',
+      pay_online: 'በመስመር ላይ ይክፈሉ', pay_or: 'ወይም በባንክ ልውውጥ ከፍለው ደረሰኙን ከታች ይጫኑ።', pay_checking: 'ክፍያዎን እየፈተሽን ነው። በራሱ ይዘምናል።', pay_done: 'ክፍያ ደርሷል',
       hello: 'ሰላም {name}', hero_title: 'በጅምላ ይግዙ። የአንዱ ዋጋ ይቀንሳል።', n_products: '{n} ምርቶች', open_orders: '{n} ክፍት ትዕዛዞች',
       search_ph: 'ምርት ፈልግ', no_match: 'ከፍለጋዎ ጋር የሚመሳሰል ምርት የለም።', save_up_to: 'እስከ {pct}% ይቆጥቡ', order_total: 'የትዕዛዙ ጠቅላላ',
       loading: 'በመጫን ላይ', error: 'ችግር ተፈጥሯል። እንደገና ይሞክሩ።', yes: 'አዎ', no: 'አይ',
@@ -163,6 +165,24 @@
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-act]')) buzz(); }, true);
   document.addEventListener('input', (e) => { if (e.target.id === 'pSearch') $('plist').innerHTML = productList(e.target.value); });
+
+  // after the buyer leaves for the payment page, check the order until it turns paid
+  let payTimer = null;
+  async function checkPayment(id) {
+    try {
+      const r = await api(`/api/orders/${id}/pay-status`);
+      if (!['awaiting_payment', 'receipt_uploaded'].includes(r.order_status)) {
+        clearInterval(payTimer); payTimer = null; S.payWait = null;
+        await refreshOrders(); toast(t('pay_done')); render(); celebrate();
+      }
+    } catch (e) { /* try again on the next tick */ }
+  }
+  function watchPayment(id) {
+    clearInterval(payTimer);
+    let n = 0;
+    payTimer = setInterval(() => { if (++n > 180) { clearInterval(payTimer); payTimer = null; S.payWait = null; return; } checkPayment(id); }, 5000);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.payWait) checkPayment(S.payWait); });
 
   const fail = (e) => {
     buzz('err');
@@ -316,6 +336,11 @@
   function paymentBlock(o) {
     if (!['awaiting_payment', 'receipt_uploaded'].includes(o.status)) return '';
     let html = `<h3>${t('amount_due')}</h3><div class="price">${money(o.total)}</div>`;
+    if (S.cfg.online_pay) {
+      html += `<div class="btns"><button class="btn" data-act="payOnline" data-order="${o.id}">${t('pay_online')}</button></div>`;
+      if (S.payWait === o.id) html += `<div class="note">${t('pay_checking')}</div>`;
+      html += `<p class="muted small">${t('pay_or')}</p>`;
+    }
     if (o.pay_by) html += `<p class="muted small">${t('pay_by', { d: esc(dateStr(o.pay_by)) })}</p>`;
     html += `<h3>${t('how_to_pay')}</h3><div class="pre">${esc(S.cfg.payment_info || t('payment_missing'))}</div>`;
     if (o.status === 'awaiting_payment' && o.reject_note) html += `<div class="note red">${t('rejected_note', { note: esc(o.reject_note) })}</div>`;
@@ -540,6 +565,15 @@
         await refreshOrders();
         S.view = { type: 'order', id: o.id }; S.tab = 'orders';
         toast(t('order_placed')); render(); window.scrollTo(0, 0); celebrate();
+      } catch (e) { fail(e); }
+    },
+    async payOnline(el) {
+      const id = Number(el.dataset.order);
+      try {
+        const r = await api(`/api/orders/${id}/pay`, { method: 'POST' });
+        S.payWait = id; render();
+        if (tg && tg.openLink) tg.openLink(r.checkout_url); else window.open(r.checkout_url, '_blank');
+        watchPayment(id);
       } catch (e) { fail(e); }
     },
     pickReceipt(el) { $('receiptInput').dataset.order = el.dataset.order; $('receiptInput').click(); },
