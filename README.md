@@ -29,16 +29,6 @@ Variables are listed in `.env.example`. The important ones are `BOT_TOKEN`, `WEB
 3. With `WEBAPP_URL` set to your https address, the bot sets its menu button on start and `/start` shows an Open button.
 4. First use: open the app from an admin account, go to Admin > Settings, save your payment details, then add products.
 
-## Online payment (optional)
-
-Buyers can pay with a Pay online button, handled by Verify Checkout hosted deposits. Manual receipt upload still works next to it.
-
-1. In the Verify Checkout dashboard: add your receiving account, create an API key that can create and read deposits, and register the return origin (the same address as `WEBAPP_URL`, for example `https://yourapp.onrender.com`).
-2. Add a webhook endpoint `https://yourapp.onrender.com/api/verify/webhook`, selecting the deposit outcome events, and copy its signing secret.
-3. Set `VERIFY_API_KEY` and `VERIFY_WEBHOOK_SECRET` in your host's environment. Restart.
-
-How it stays safe: an order is marked paid only after the server reads the deposit back from the API and finds status `succeeded`, currency ETB and the exact order amount. The webhook is signed (checked on the raw body, 5 minute tolerance), duplicates are ignored, and a background check every 2 minutes catches missed webhooks. Odd cases (wrong amount, payment on a cancelled order, review required) are sent to the admins in Telegram and the order is not changed. The code is in `payments.js`.
-
 ## Branding
 
 - Colors and font: edit `public/brand.css`. It is the only file you need for this.

@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { Bot, InlineKeyboard } = require('grammy');
-const { createPayments } = require('./payments');
 
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
@@ -352,8 +351,6 @@ const removeFile = (dir, name) => {
 
 // ---------- app ----------
 const app = express();
-const payments = createPayments({ db, notifyUser, notifyAdmins, orderVars, webappUrl: WEBAPP_URL, botUsername: BOT_USERNAME });
-
 // security headers
 app.disable('x-powered-by');
 app.use((req, res, next) => {
@@ -369,7 +366,6 @@ app.use((req, res, next) => {
 const hits = new Map();
 setInterval(() => hits.clear(), 60 * 1000).unref();
 app.use('/api', (req, res, next) => {
-  if (req.path === '/verify/webhook') return next();
   const k = req.get('x-init-data') ? crypto.createHash('sha1').update(req.get('x-init-data')).digest('hex') : req.ip;
   const n = (hits.get(k) || 0) + 1;
   hits.set(k, n);
@@ -377,10 +373,7 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-payments.mountWebhook(app); // needs the raw body, so it goes before express.json
 app.use(express.json({ limit: '100kb' }));
-payments.mountApi(app, auth);
-payments.startSweeper();
 app.use('/images', express.static(IMAGE_DIR, { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -393,7 +386,6 @@ app.get('/api/config', auth, (req, res) => {
     payment_info: getSetting('payment_info', ''),
     bot_username: BOT_USERNAME,
     pay_days: PAY_DAYS,
-    online_pay: payments.enabled,
     has_logo: fs.existsSync(path.join(__dirname, 'public', 'brand', 'logo.png')),
   });
 });
