@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { Bot, InlineKeyboard } = require('grammy');
+const { createPayments } = require('./payments');
 
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
@@ -12,6 +13,8 @@ const BOT_USERNAME = process.env.BOT_USERNAME || '';
 const WEBAPP_URL = process.env.WEBAPP_URL || '';
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const DEV_MODE = process.env.DEV_MODE === '1';
+// Dev login lets anyone act as any user, so it must never run next to a real bot.
+if (DEV_MODE && BOT_TOKEN) { console.error('Refusing to start: DEV_MODE is on while BOT_TOKEN is set. Remove DEV_MODE on a live server.'); process.exit(1); }
 // Unpaid orders are cancelled after this many days. Set to 0 to turn this off.
 const PAY_DAYS = Number(process.env.PAY_DAYS || 3);
 const EXPIRY_CHECK_MS = Number(process.env.EXPIRY_CHECK_MS || 10 * 60 * 1000);
@@ -326,6 +329,22 @@ const makeUpload = (dir, allowPdf) =>
 const receiptUpload = makeUpload(RECEIPT_DIR, true);
 const imageUpload = makeUpload(IMAGE_DIR, false);
 
+// The declared file type comes from the phone, so also check the first bytes.
+function realType(dir, name) {
+  try {
+    const fd = fs.openSync(path.join(dir, path.basename(name)), 'r');
+    const b = Buffer.alloc(12);
+    fs.readSync(fd, b, 0, 12, 0);
+    fs.closeSync(fd);
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+    if (b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+    if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return 'image/webp';
+    if (b.slice(0, 5).toString() === '%PDF-') return 'application/pdf';
+  } catch (e) { /* unreadable */ }
+  return null;
+}
+const fileOk = (dir, file) => realType(dir, file.filename) === file.mimetype;
+
 const removeFile = (dir, name) => {
   if (!name) return;
   fs.unlink(path.join(dir, path.basename(name)), () => {});
@@ -333,7 +352,35 @@ const removeFile = (dir, name) => {
 
 // ---------- app ----------
 const app = express();
+const payments = createPayments({ db, notifyUser, notifyAdmins, orderVars, webappUrl: WEBAPP_URL, botUsername: BOT_USERNAME });
+
+// security headers
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org https://t.me; base-uri 'none'; form-action 'self'",
+  });
+  next();
+});
+
+// simple rate limit per client (in memory, fine for a single instance)
+const hits = new Map();
+setInterval(() => hits.clear(), 60 * 1000).unref();
+app.use('/api', (req, res, next) => {
+  if (req.path === '/verify/webhook') return next();
+  const k = req.get('x-init-data') ? crypto.createHash('sha1').update(req.get('x-init-data')).digest('hex') : req.ip;
+  const n = (hits.get(k) || 0) + 1;
+  hits.set(k, n);
+  if (n > 240) return res.status(429).json({ error: 'Too many requests. Wait a minute and try again.' });
+  next();
+});
+
+payments.mountWebhook(app); // needs the raw body, so it goes before express.json
 app.use(express.json({ limit: '100kb' }));
+payments.mountApi(app, auth);
+payments.startSweeper();
 app.use('/images', express.static(IMAGE_DIR, { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -346,6 +393,7 @@ app.get('/api/config', auth, (req, res) => {
     payment_info: getSetting('payment_info', ''),
     bot_username: BOT_USERNAME,
     pay_days: PAY_DAYS,
+    online_pay: payments.enabled,
     has_logo: fs.existsSync(path.join(__dirname, 'public', 'brand', 'logo.png')),
   });
 });
@@ -416,6 +464,7 @@ app.post('/api/orders/:id/cancel', auth, (req, res) => {
 app.post('/api/orders/:id/receipt', auth, (req, res) => {
   receiptUpload.single('receipt')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
+    if (req.file && !fileOk(RECEIPT_DIR, req.file)) { removeFile(RECEIPT_DIR, req.file.filename); return res.status(400).json({ error: 'unsupported file type' }); }
     const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ? AND tg_id = ?').get(req.params.id, req.tgId);
     if (!o || !req.file) {
       if (req.file) removeFile(RECEIPT_DIR, req.file.filename);
@@ -458,6 +507,7 @@ app.get('/api/admin/products', auth, adminOnly, (req, res) => {
 app.post('/api/admin/products', auth, adminOnly, (req, res) => {
   imageUpload.single('image')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
+    if (req.file && !fileOk(IMAGE_DIR, req.file)) { removeFile(IMAGE_DIR, req.file.filename); return res.status(400).json({ error: 'unsupported file type' }); }
     const parsed = parseProductBody(req.body);
     if (parsed.error) {
       if (req.file) removeFile(IMAGE_DIR, req.file.filename);
@@ -475,6 +525,7 @@ app.post('/api/admin/products', auth, adminOnly, (req, res) => {
 app.put('/api/admin/products/:id', auth, adminOnly, (req, res) => {
   imageUpload.single('image')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
+    if (req.file && !fileOk(IMAGE_DIR, req.file)) { removeFile(IMAGE_DIR, req.file.filename); return res.status(400).json({ error: 'unsupported file type' }); }
     const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
     if (!p) {
       if (req.file) removeFile(IMAGE_DIR, req.file.filename);
