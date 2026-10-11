@@ -1,6 +1,6 @@
 {
   "name": "gebeya-go",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bulk buying Telegram mini app for imported goods in Ethiopia",
   "main": "server.js",
   "scripts": {
