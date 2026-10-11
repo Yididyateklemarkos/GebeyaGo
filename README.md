@@ -32,7 +32,7 @@ Variables are listed in `.env.example`. The important ones are `BOT_TOKEN`, `WEB
 ## Branding
 
 - Colors and font: edit `public/brand.css`. It is the only file you need for this.
-- Logo: save it as `public/brand/logo.png`. It appears in the header automatically. If the logo already contains the name, uncomment `.brand { display: none; }` in `brand.css`.
+- Logo: `public/brand/logo.png` (already included). Colors in `brand.css` come from the logo.
 
 ## Local testing
 
