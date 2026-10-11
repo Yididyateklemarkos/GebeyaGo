@@ -1,6 +1,10 @@
 (() => {
   const tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
+  if (tg) {
+    tg.ready(); tg.expand();
+    try { tg.setHeaderColor('#fdf6ec'); tg.setBackgroundColor('#fdf6ec'); tg.setBottomBarColor && tg.setBottomBarColor('#ffffff'); } catch (e) { /* older clients */ }
+  }
+  const buzz = (kind) => { try { const h = tg && tg.HapticFeedback; if (!h) return; if (kind === 'ok') h.notificationOccurred('success'); else if (kind === 'err') h.notificationOccurred('error'); else h.selectionChanged(); } catch (e) { /* ignore */ } };
   const params = new URLSearchParams(location.search);
   const devUser = params.get('dev');
 
@@ -35,6 +39,8 @@
       profile_title: 'Your details', name: 'Name', phone: 'Phone number',
       business: 'Business name (or planned business)', language: 'Language',
       save: 'Save', saved: 'Saved', uploaded: 'Receipt uploaded',
+      hello: 'Hello, {name}', hero_title: 'Buy in bulk. Pay less per unit.', n_products: '{n} products', open_orders: '{n} open orders',
+      search_ph: 'Search products', no_match: 'No products match your search.', save_up_to: 'Save up to {pct}%', order_total: 'Order total',
       loading: 'Loading', error: 'Something went wrong. Try again.', yes: 'Yes', no: 'No',
     },
     am: {
@@ -66,6 +72,8 @@
       profile_title: 'የእርስዎ መረጃ', name: 'ስም', phone: 'ስልክ ቁጥር',
       business: 'የንግድ ስም (ወይም የታቀደ ንግድ)', language: 'ቋንቋ',
       save: 'አስቀምጥ', saved: 'ተቀምጧል', uploaded: 'ደረሰኝ ተጭኗል',
+      hello: 'ሰላም {name}', hero_title: 'በጅምላ ይግዙ። የአንዱ ዋጋ ይቀንሳል።', n_products: '{n} ምርቶች', open_orders: '{n} ክፍት ትዕዛዞች',
+      search_ph: 'ምርት ፈልግ', no_match: 'ከፍለጋዎ ጋር የሚመሳሰል ምርት የለም።', save_up_to: 'እስከ {pct}% ይቆጥቡ', order_total: 'የትዕዛዙ ጠቅላላ',
       loading: 'በመጫን ላይ', error: 'ችግር ተፈጥሯል። እንደገና ይሞክሩ።', yes: 'አዎ', no: 'አይ',
     },
   };
@@ -145,7 +153,19 @@
     });
   }
 
+  function celebrate() {
+    buzz('ok');
+    const d = document.createElement('div');
+    d.className = 'burst';
+    d.innerHTML = '<svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="m15 27 8 8 15-17"/></svg>';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 1500);
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-act]')) buzz(); }, true);
+  document.addEventListener('input', (e) => { if (e.target.id === 'pSearch') $('plist').innerHTML = productList(e.target.value); });
+
   const fail = (e) => {
+    buzz('err');
     if (e.message === 'profile_required') { toast(t('profile_needed')); S.tab = 'profile'; S.view = null; render(); return; }
     toast(e.message && e.message !== 'request failed' ? e.message : t('error'));
   };
@@ -170,33 +190,77 @@
   function stepsHtml(status) {
     if (status === 'cancelled') return `<span class="badge red">${t('s_cancelled')}</span>`;
     const idx = STEP_INDEX[status];
-    return `<div class="steps">${STEP_KEYS.map((k, i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t('st_' + k)}</span>`).join('')}</div>`;
+    const pct = Math.round(((idx + (status === 'completed' ? 1 : 0.5)) / STEP_KEYS.length) * 100);
+    return `<div class="track"><i style="width:${Math.min(100, pct)}%"></i></div><div class="steps">${STEP_KEYS.map((k, i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t('st_' + k)}</span>`).join('')}</div>`;
   }
   const statusBadge = (s) => `<span class="badge ${s === 'paid' || s === 'completed' ? 'green' : s === 'cancelled' ? 'red' : s === 'awaiting_payment' ? 'amber' : ''}">${t('s_' + s)}</span>`;
+
+  const ICON = {
+    products: '<path d="M4 9h16l-1.5 10.2a1.5 1.5 0 0 1-1.5 1.3H7a1.5 1.5 0 0 1-1.5-1.3L4 9Z"/><path d="M8 9a4 4 0 0 1 8 0"/>',
+    orders: '<path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/>',
+    profile: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+    admin: '<path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 9-4.1-.8-7-4.6-7-9V6l7-3Z"/><path d="m9 12 2 2 4-4"/>',
+    pin: '<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/>',
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  };
+  const icon = (n, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+  // market awning: stripes with a scalloped edge, drawn in flat brand colors
+  const AWNING = `<svg class="awning" viewBox="0 0 320 22" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="aw" width="40" height="22" patternUnits="userSpaceOnUse"><rect width="20" height="22" fill="#fdf6ec" opacity=".95"/><path d="M0 14h20a10 10 0 0 1-20 0Z" fill="#fdf6ec"/><path d="M20 14h20a10 10 0 0 1-20 0Z" fill="#a2441d"/><rect x="20" width="20" height="14" fill="#a2441d"/></pattern></defs><rect width="320" height="22" fill="url(#aw)"/></svg>`;
+  const BASKET = '<svg class="hero-mark" viewBox="0 0 120 120" aria-hidden="true"><path d="M20 52h80L90 98H30Z" fill="#fdf6ec"/><path d="M32 52a28 28 0 0 1 56 0" fill="none" stroke="#fdf6ec" stroke-width="7"/><path d="M104 66v22l20-11Z" fill="#fdf6ec"/></svg>';
+  const savePct = (p) => (p.best_price < p.base_price ? Math.round((1 - p.best_price / p.base_price) * 100) : 0);
 
   function cover(p) {
     return p.image ? `<img class="cover" src="${esc(p.image)}" alt="">` : `<div class="cover ph">${esc((p.title || '?').trim().charAt(0).toUpperCase())}</div>`;
   }
 
   function productCard(p) {
+    const pct = savePct(p);
     return `
-      <div class="card tap" data-act="openProduct" data-id="${p.id}">
-        ${cover(p)}
+      <div class="card tap pcard" data-act="openProduct" data-id="${p.id}">
+        <div class="media">
+          ${cover(p)}
+          <span class="chip moq">${t('min_order', { n: p.moq, unit: esc(p.unit) })}</span>
+          ${pct >= 1 ? `<span class="chip save">${t('save_up_to', { pct })}</span>` : ''}
+        </div>
         <div class="pad">
           <div class="title">${esc(p.title)}</div>
-          ${p.origin ? `<div class="muted">${esc(p.origin)}</div>` : ''}
-          <div class="row" style="margin-top:6px">
-            <div class="price">${money(p.base_price)} <small>${t('per', { unit: esc(p.unit) })}</small></div>
-            <span class="badge">${t('min_order', { n: p.moq, unit: esc(p.unit) })}</span>
+          ${p.origin ? `<div class="muted loc">${icon('pin')}${esc(p.origin)}</div>` : ''}
+          <div class="row pr">
+            <div>
+              <div class="price">${money(p.base_price)} <small>${t('per', { unit: esc(p.unit) })}</small></div>
+              ${p.best_price < p.base_price ? `<div class="muted small">${t('down_to', { price: money(p.best_price) })}</div>` : ''}
+            </div>
+            <span class="go">${icon('arrow')}</span>
           </div>
-          ${p.best_price < p.base_price ? `<div class="muted small">${t('down_to', { price: money(p.best_price) })}</div>` : ''}
         </div>
       </div>`;
   }
 
+  function productList(q) {
+    const needle = (q || '').trim().toLowerCase();
+    const list = needle ? S.products.filter((p) => (p.title + ' ' + (p.origin || '') + ' ' + (p.description || '')).toLowerCase().includes(needle)) : S.products;
+    return list.length ? list.map(productCard).join('') : `<div class="empty">${t('no_match')}</div>`;
+  }
+
   function viewProducts() {
-    if (!S.products.length) return `<div class="empty">${t('no_products')}</div>`;
-    return `<p class="muted">${t('intro')}</p>${S.products.map(productCard).join('')}`;
+    if (!S.products.length) return `<div class="empty big">${BASKET.replace('hero-mark', 'empty-mark')}<p>${t('no_products')}</p></div>`;
+    const open = S.orders.filter((o) => !['completed', 'cancelled'].includes(o.status)).length;
+    const first = esc((S.cfg.user.name || '').split(' ')[0]);
+    return `
+      <section class="hero">
+        ${AWNING}
+        ${BASKET}
+        <div class="hero-body">
+          ${first ? `<div class="hello">${t('hello', { name: first })}</div>` : ''}
+          <h1>${t('hero_title')}</h1>
+          <p>${t('intro')}</p>
+          <div class="pills"><span>${t('n_products', { n: S.products.length })}</span>${open ? `<span data-act="tab" data-tab="orders" class="tap">${t('open_orders', { n: open })}</span>` : ''}</div>
+        </div>
+      </section>
+      <label class="search">${icon('search')}<input id="pSearch" type="search" placeholder="${esc(t('search_ph'))}" autocomplete="off"></label>
+      <div id="plist">${productList('')}</div>`;
   }
 
   function tierIndexFor(p, qty) {
@@ -245,8 +309,8 @@
       <label>${t('delivery_note')}</label>
       <textarea id="oNote" maxlength="300" placeholder="${esc(t('note_placeholder'))}"></textarea>
       <p class="muted small">${t('price_locked_note')}</p>
-      <div class="btns"><button class="btn" data-act="placeOrder">${t('place_order')}</button></div>
-      ${S.cfg.bot_username ? `<div class="btns"><button class="btn alt" data-act="share">${t('share')}</button></div>` : ''}`;
+      ${S.cfg.bot_username ? `<div class="btns"><button class="btn alt" data-act="share">${t('share')}</button></div>` : ''}
+      <div class="checkout"><div><div class="muted small">${t('order_total')}</div><div class="price" id="barTotal">${money(unitPrice * S.qty)}</div></div><button class="btn" data-act="placeOrder">${t('place_order')}</button></div>`;
   }
 
   function paymentBlock(o) {
@@ -280,7 +344,7 @@
   }
 
   function viewOrders() {
-    if (!S.orders.length) return `<div class="empty">${t('orders_empty')}</div>`;
+    if (!S.orders.length) return `<div class="empty big">${BASKET.replace('hero-mark', 'empty-mark')}<p>${t('orders_empty')}</p></div>`;
     return S.orders.map((o) => `
       <div class="card tap" data-act="openOrder" data-id="${o.id}"><div class="pad">
         <div class="row"><div class="title">${esc(o.title)}</div>${statusBadge(o.status)}</div>
@@ -409,7 +473,8 @@
   // ---------- render ----------
   function render() {
     const view = $('view');
-    if (!S.loaded) { view.innerHTML = `<div class="empty">${t('loading')}</div>`; return; }
+    if (!S.loaded) { view.innerHTML = '<div class="skel hero-s"></div><div class="skel line"></div><div class="skel card-s"></div><div class="skel card-s"></div>'; return; }
+    const key = (S.view ? S.view.type + S.view.id : S.tab) + S.lang;
     if (S.view && S.view.type === 'product') view.innerHTML = viewProduct();
     else if (S.view && S.view.type === 'order') view.innerHTML = viewOrder();
     else if (S.tab === 'products') view.innerHTML = viewProducts();
@@ -417,9 +482,10 @@
     else if (S.tab === 'profile') view.innerHTML = viewProfile();
     else if (S.tab === 'admin' && S.cfg.is_admin) view.innerHTML = viewAdmin();
 
+    if (key !== S.lastKey) { S.lastKey = key; view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter'); }
     const tabs = [['products', 'tab_products'], ['orders', 'tab_orders'], ['profile', 'tab_profile']];
     if (S.cfg.is_admin) tabs.push(['admin', 'tab_admin']);
-    $('nav').innerHTML = tabs.map(([k, label]) => `<button class="${S.tab === k && !S.view ? 'on' : ''}" data-act="tab" data-tab="${k}">${t(label)}</button>`).join('');
+    $('nav').innerHTML = tabs.map(([k, label]) => `<button class="${S.tab === k && !S.view ? 'on' : ''}" data-act="tab" data-tab="${k}">${icon(k)}<span>${t(label)}</span></button>`).join('');
 
     if (tg && tg.BackButton) { if (S.view) tg.BackButton.show(); else tg.BackButton.hide(); }
   }
@@ -443,6 +509,8 @@
     if (!fromTyping) $('qtyInput').value = S.qty;
     $('unitPrice').textContent = money(unitPrice);
     $('totalPrice').textContent = money(unitPrice * S.qty);
+    $('barTotal').textContent = money(unitPrice * S.qty);
+    ['totalPrice', 'barTotal', 'unitPrice'].forEach((id) => { const el = $(id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); });
     document.querySelectorAll('.tiers tr').forEach((r) => r.classList.toggle('cur', Number(r.dataset.tier) === idx));
     const hint = nextTierHint(p, S.qty);
     $('tierHint').textContent = hint;
@@ -471,7 +539,7 @@
         const o = await api(`/api/products/${p.id}/order`, { method: 'POST', body: { qty: S.qty, note: $('oNote').value } });
         await refreshOrders();
         S.view = { type: 'order', id: o.id }; S.tab = 'orders';
-        toast(t('order_placed')); render(); window.scrollTo(0, 0);
+        toast(t('order_placed')); render(); window.scrollTo(0, 0); celebrate();
       } catch (e) { fail(e); }
     },
     pickReceipt(el) { $('receiptInput').dataset.order = el.dataset.order; $('receiptInput').click(); },
@@ -639,6 +707,7 @@
   render();
   loadAll().then(() => {
     if (S.cfg.has_logo && logo) logo.src = '/brand/logo.png';
+    const who = $('who'); if (who && S.cfg.user.name) { who.textContent = S.cfg.user.name.trim().charAt(0).toUpperCase(); who.hidden = false; }
     const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
     const m = sp && /^product_(\d+)$/.exec(sp);
     if (m) {
