@@ -1,28 +1,22 @@
 # Gebeya Go
 
-A Telegram mini app for group buying imported goods. Businesses and people starting a business join a group order, the price drops as the group grows, and the organizer places one bulk order with the supplier.
+A Telegram mini app for bulk buying imported goods. Businesses and people starting a business order any product in bulk. Each product has its own minimum order quantity (MOQ), and the unit price drops as the order quantity goes up.
 
 ## How it works
 
-1. The organizer (you) publishes a group: product, supplier price tiers, minimum units, join deadline, expected arrival.
-2. Buyers open the app in Telegram, set a quantity and join. They can change the quantity or leave while the group is open. Nobody pays at this stage.
-3. At the deadline the group either locks (minimum reached) or is cancelled (minimum not reached). You can also lock it earlier from the Admin tab. Buyers get a Telegram message.
-4. When a group locks, the price is final. Each buyer sees the amount to pay and your payment details, pays by bank transfer or mobile money, and uploads the receipt.
-5. You check each receipt in the Admin tab and confirm or reject it. Buyers are notified either way.
-6. You move the group through Ordered, Shipped, Arrived and Closed. Buyers get a message at each step.
+1. You add a product in the Admin tab: name, photo, unit, MOQ, optional maximum, the base price at the MOQ, and optional cheaper prices for larger quantities.
+2. A buyer opens the app in Telegram, picks a quantity (at least the MOQ) and places an order. The unit price is locked at that moment.
+3. The buyer sees the amount and your payment details, pays by bank transfer or mobile money, and uploads the receipt.
+4. You check the receipt in the Admin tab and confirm or reject it. The buyer gets a Telegram message either way.
+5. You move orders through Ordered, Shipped, Arrived and Completed, one at a time or in bulk for everything shown. Buyers get a message at each step.
+6. Unpaid orders are cancelled automatically after `PAY_DAYS` days (default 3, 0 turns this off).
 
-Payment is manual in this version. The app never touches money, it only tracks who has paid.
+Payment is manual. The app never touches money, it only tracks who has paid. The buyer side is in English and Amharic. The Admin tab is in English.
 
 ## Setup
 
-### 1. Create the bot
-
-1. In Telegram, open @BotFather and send `/newbot`. Pick a name and a username. Copy the token.
-2. Find your own Telegram user ID by messaging @userinfobot.
-
-### 2. Host the app over https
-
-Telegram mini apps need an https address. Any host that runs Node 20 or newer works (a small VPS, Railway, Render, Fly.io). The app needs a persistent disk for `DATA_DIR`, because the database, receipts and product photos live there.
+1. Create the bot with @BotFather (`/newbot`) and copy the token. Get your Telegram user ID from @userinfobot.
+2. Host the app over https on any host that runs Node 20 or newer, with a persistent disk for `DATA_DIR` (database, receipts and photos live there).
 
 ```
 cp .env.example .env     # fill in the values, or set them in your host's dashboard
@@ -30,37 +24,16 @@ npm install
 npm start
 ```
 
-Environment variables are listed in `.env.example`. The important ones are `BOT_TOKEN`, `WEBAPP_URL`, `ADMIN_IDS` and `BOT_USERNAME`. If you use a `.env` file, load it with `node --env-file=.env server.js`.
+Variables are listed in `.env.example`. The important ones are `BOT_TOKEN`, `WEBAPP_URL`, `ADMIN_IDS`, `BOT_USERNAME` and `DATA_DIR`. With a `.env` file, run `node --env-file=.env server.js`.
 
-### 3. Connect the app to the bot
+3. With `WEBAPP_URL` set to your https address, the bot sets its menu button on start and `/start` shows an Open button.
+4. First use: open the app from an admin account, go to Admin > Settings, save your payment details, then add products.
 
-1. Start the server with `WEBAPP_URL` set to your https address. On start, the bot sets its menu button to open the app, and `/start` shows an Open button.
-2. For the Share button and links that open a specific group, create a mini app in BotFather with `/newapp` (or set the Main Mini App with `/mybots`, then Bot Settings) and point it at the same address. Links then look like `https://t.me/YOUR_BOT?startapp=deal_12`.
+## Branding
 
-### 4. First use
+- Colors and font: edit `public/brand.css`. It is the only file you need for this.
+- Logo: save it as `public/brand/logo.png`. It appears in the header automatically. If the logo already contains the name, uncomment `.brand { display: none; }` in `brand.css`.
 
-1. Open the bot, tap the menu button, go to the Admin tab (only IDs in `ADMIN_IDS` see it).
-2. Under Payment details, enter the accounts buyers should pay to, and save.
-3. Under New group, publish your first group.
+## Local testing
 
-## Running it on your own computer
-
-```
-npm run dev
-```
-
-Then open `http://localhost:3000/?dev=1` for the admin view, or `?dev=2`, `?dev=3` to act as different buyers. Dev mode skips Telegram login, so never enable it on a public server. Without `BOT_TOKEN` there are no Telegram notifications.
-
-## Project layout
-
-- `server.js`: API, database (SQLite), Telegram login check, deadline job, bot messages.
-- `public/`: the mini app (plain HTML, CSS and JavaScript, no build step).
-- `data/`: created at runtime. Back this folder up.
-
-## Notes
-
-- Every buyer needs a phone number and business name before joining, so you can reach them about delivery. These are visible to admins only.
-- Receipts are visible only to the buyer who uploaded them and to admins.
-- Prices are in ETB and each tier price must be lower than the one before.
-- The Amharic text should be reviewed by a native speaker before launch.
-- Not built yet: online payment (Telebirr, Chapa), refunds tracking, multiple organizers with separate stock, delivery address capture, product categories and search.
+`npm run dev` starts the server in dev mode on port 3000. Dev mode lets anyone log in as any user, so never use it on a live server.

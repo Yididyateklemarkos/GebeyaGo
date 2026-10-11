@@ -12,7 +12,9 @@ const BOT_USERNAME = process.env.BOT_USERNAME || '';
 const WEBAPP_URL = process.env.WEBAPP_URL || '';
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const DEV_MODE = process.env.DEV_MODE === '1';
+// Unpaid orders are cancelled after this many days. Set to 0 to turn this off.
 const PAY_DAYS = Number(process.env.PAY_DAYS || 3);
+const EXPIRY_CHECK_MS = Number(process.env.EXPIRY_CHECK_MS || 10 * 60 * 1000);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const RECEIPT_DIR = path.join(DATA_DIR, 'receipts');
 const IMAGE_DIR = path.join(DATA_DIR, 'images');
@@ -21,6 +23,7 @@ fs.mkdirSync(RECEIPT_DIR, { recursive: true });
 fs.mkdirSync(IMAGE_DIR, { recursive: true });
 
 // ---------- database ----------
+// The earlier group buying tables (deals, orders) are left alone if they exist. This version uses new tables.
 const db = new Database(path.join(DATA_DIR, 'gebeya.db'));
 db.pragma('journal_mode = WAL');
 db.exec(`
@@ -33,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
   lang TEXT DEFAULT 'en',
   created_at INTEGER
 );
-CREATE TABLE IF NOT EXISTS deals (
+CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
   description TEXT,
@@ -41,27 +44,30 @@ CREATE TABLE IF NOT EXISTS deals (
   unit TEXT,
   image TEXT,
   moq INTEGER NOT NULL,
-  max_per_buyer INTEGER DEFAULT 0,
+  max_qty INTEGER NOT NULL DEFAULT 0,
   tiers TEXT NOT NULL,
-  deadline INTEGER NOT NULL,
-  eta_text TEXT,
-  status TEXT NOT NULL DEFAULT 'open',
-  locked_price REAL,
-  pay_by INTEGER,
-  created_at INTEGER
+  lead_time TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER,
+  updated_at INTEGER
 );
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE IF NOT EXISTS bulk_orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  deal_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
   tg_id TEXT NOT NULL,
   qty INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'joined',
+  unit_price REAL NOT NULL,
+  total REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'awaiting_payment',
   receipt TEXT,
   reject_note TEXT,
+  eta_text TEXT,
+  note TEXT,
   created_at INTEGER,
-  updated_at INTEGER,
-  UNIQUE(deal_id, tg_id)
+  updated_at INTEGER
 );
+CREATE INDEX IF NOT EXISTS idx_bulk_orders_user ON bulk_orders(tg_id);
+CREATE INDEX IF NOT EXISTS idx_bulk_orders_status ON bulk_orders(status);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
@@ -77,39 +83,47 @@ const setSetting = (key, value) =>
 
 // ---------- messages sent through the bot ----------
 const MSG = {
-  locked: {
-    en: 'Group "{title}" reached its minimum and is now locked. Final price: {price} ETB per {unit}. Your total: {total} ETB. Please pay and upload your receipt by {pay_by}.',
-    am: '"{title}" የቡድን ግዢ ዝቅተኛውን ብዛት አሟልቷል። የመጨረሻ ዋጋ፡ በ{unit} {price} ብር። ጠቅላላ ክፍያዎ፡ {total} ብር። እባክዎ እስከ {pay_by} ድረስ ከፍለው ደረሰኝ ይጫኑ።',
+  placed: {
+    en: 'Order #{id} received: {qty} x {title}. Total: {total} ETB. Open the app to see payment details and upload your receipt.',
+    am: 'ትዕዛዝ #{id} ተቀብለናል፡ {qty} x {title}። ጠቅላላ፡ {total} ብር። የክፍያ መረጃውን ለማየት እና ደረሰኝ ለመጫን መተግበሪያውን ይክፈቱ።',
   },
   paid: {
-    en: 'Payment confirmed for "{title}". Thank you.',
-    am: 'ለ"{title}" ክፍያዎ ተረጋግጧል። እናመሰግናለን።',
+    en: 'Payment confirmed for order #{id} ({title}). Thank you.',
+    am: 'ለትዕዛዝ #{id} ({title}) ክፍያዎ ተረጋግጧል። እናመሰግናለን።',
   },
   rejected: {
-    en: 'Your receipt for "{title}" could not be confirmed. {note} Please upload it again.',
-    am: 'ለ"{title}" የላኩት ደረሰኝ ሊረጋገጥ አልቻለም። {note} እባክዎ እንደገና ይጫኑ።',
+    en: 'Your receipt for order #{id} ({title}) could not be confirmed. {note} Please upload it again.',
+    am: 'ለትዕዛዝ #{id} ({title}) የላኩት ደረሰኝ ሊረጋገጥ አልቻለም። {note} እባክዎ እንደገና ይጫኑ።',
   },
   ordered: {
-    en: 'The order for "{title}" has been placed with the supplier.',
-    am: 'የ"{title}" ትዕዛዝ ለአቅራቢው ተሰጥቷል።',
+    en: 'Order #{id} ({title}) has been placed with the supplier.',
+    am: 'ትዕዛዝ #{id} ({title}) ለአቅራቢው ተሰጥቷል።',
   },
   shipped: {
-    en: '"{title}" has shipped. Expected arrival: {eta}.',
-    am: '"{title}" ተልኳል። የሚደርስበት ጊዜ፡ {eta}።',
+    en: 'Order #{id} ({title}) has shipped. Expected arrival: {eta}.',
+    am: 'ትዕዛዝ #{id} ({title}) ተልኳል። የሚደርስበት ጊዜ፡ {eta}።',
   },
   arrived: {
-    en: '"{title}" has arrived. We will contact you about pickup or delivery.',
-    am: '"{title}" ደርሷል። ስለ ርክክብ እናነጋግርዎታለን።',
+    en: 'Order #{id} ({title}) has arrived. We will contact you about pickup or delivery.',
+    am: 'ትዕዛዝ #{id} ({title}) ደርሷል። ስለ ርክክብ እናነጋግርዎታለን።',
+  },
+  completed: {
+    en: 'Order #{id} ({title}) is complete. Thank you for buying with Gebeya Go.',
+    am: 'ትዕዛዝ #{id} ({title}) ተጠናቋል። ከገበያ ጎ ስለገዙ እናመሰግናለን።',
   },
   cancelled: {
-    en: 'The group "{title}" was cancelled. If you already paid, we will contact you about a refund.',
-    am: '"{title}" የቡድን ግዢ ተሰርዟል። ቀድመው ከከፈሉ፣ ስለ ገንዘብ ተመላሽ እናነጋግርዎታለን።',
+    en: 'Order #{id} ({title}) was cancelled. If you already paid, we will contact you about a refund.',
+    am: 'ትዕዛዝ #{id} ({title}) ተሰርዟል። ቀድመው ከከፈሉ፣ ስለ ገንዘብ ተመላሽ እናነጋግርዎታለን።',
+  },
+  expired: {
+    en: 'Order #{id} ({title}) was cancelled because payment was not received in time. You can place a new order any time.',
+    am: 'ትዕዛዝ #{id} ({title}) ክፍያ በጊዜው ስላልደረሰ ተሰርዟል። በማንኛውም ጊዜ አዲስ ትዕዛዝ ማዘዝ ይችላሉ።',
   },
 };
 
 const fmt = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_, k) => (vars[k] === undefined ? '' : vars[k]));
-const money = (n) => (Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
-const dateStr = (ms) => new Date(ms + 3 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ');
+const round2 = (n) => Math.round(n * 100) / 100;
+const money = (n) => round2(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 let bot = null;
 async function notifyUser(tgId, key, vars) {
@@ -122,137 +136,126 @@ async function notifyUser(tgId, key, vars) {
     console.warn('notify failed for', tgId, err.description || err.message);
   }
 }
-
-// ---------- pricing helpers ----------
-const round2 = (n) => Math.round(n * 100) / 100;
-
-function currentPrice(tiers, total) {
-  let price = tiers[0].price;
-  for (const t of tiers) if (total >= t.min_qty) price = t.price;
-  return price;
-}
-
-function aggregate(dealId) {
-  return db
-    .prepare("SELECT COALESCE(SUM(qty), 0) AS total, COUNT(*) AS buyers FROM orders WHERE deal_id = ? AND status != 'cancelled'")
-    .get(dealId);
-}
-
-function serializeOrder(o, deal, stats) {
-  const tiers = JSON.parse(deal.tiers);
-  const unitPrice = deal.locked_price != null ? deal.locked_price : currentPrice(tiers, stats.total);
-  return {
-    id: o.id,
-    deal_id: o.deal_id,
-    qty: o.qty,
-    status: o.status,
-    has_receipt: !!o.receipt,
-    reject_note: o.reject_note,
-    unit_price: unitPrice,
-    total: round2(unitPrice * o.qty),
-    price_is_final: deal.locked_price != null,
-  };
-}
-
-function serializeDeal(d, tgId) {
-  const tiers = JSON.parse(d.tiers);
-  const stats = aggregate(d.id);
-  const price = d.locked_price != null ? d.locked_price : currentPrice(tiers, stats.total);
-  const next = d.locked_price != null ? null : tiers.find((t) => t.min_qty > stats.total) || null;
-  let my = null;
-  if (tgId) {
-    const o = db.prepare('SELECT * FROM orders WHERE deal_id = ? AND tg_id = ?').get(d.id, tgId);
-    if (o && o.status !== 'cancelled') my = serializeOrder(o, d, stats);
-  }
-  return {
-    id: d.id,
-    title: d.title,
-    description: d.description,
-    origin: d.origin,
-    unit: d.unit,
-    image: d.image ? `/images/${d.image}` : null,
-    moq: d.moq,
-    max_per_buyer: d.max_per_buyer,
-    tiers,
-    deadline: d.deadline,
-    eta_text: d.eta_text,
-    status: d.status,
-    locked_price: d.locked_price,
-    pay_by: d.pay_by,
-    total_qty: stats.total,
-    buyers: stats.buyers,
-    current_price: price,
-    next_tier: next,
-    my_order: my,
-  };
-}
-
-// ---------- deal lifecycle ----------
-const TRANSITIONS = {
-  open: ['locked', 'cancelled'],
-  locked: ['ordered', 'cancelled'],
-  ordered: ['shipped'],
-  shipped: ['arrived'],
-  arrived: ['closed'],
-};
-
-function participants(dealId) {
-  return db.prepare("SELECT * FROM orders WHERE deal_id = ? AND status != 'cancelled'").all(dealId);
-}
-
-function lockDeal(deal) {
-  const tiers = JSON.parse(deal.tiers);
-  const stats = aggregate(deal.id);
-  const price = currentPrice(tiers, stats.total);
-  const payBy = Date.now() + PAY_DAYS * 86400000;
-  db.transaction(() => {
-    db.prepare("UPDATE deals SET status = 'locked', locked_price = ?, pay_by = ? WHERE id = ?").run(price, payBy, deal.id);
-    db.prepare("UPDATE orders SET status = 'awaiting_payment', updated_at = ? WHERE deal_id = ? AND status = 'joined'").run(Date.now(), deal.id);
-  })();
-  for (const o of participants(deal.id)) {
-    notifyUser(o.tg_id, 'locked', {
-      title: deal.title,
-      unit: deal.unit,
-      price: money(price),
-      total: money(price * o.qty),
-      pay_by: dateStr(payBy),
-    });
-  }
-}
-
-function cancelDeal(deal) {
-  const people = participants(deal.id);
-  db.transaction(() => {
-    db.prepare("UPDATE deals SET status = 'cancelled' WHERE id = ?").run(deal.id);
-    db.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE deal_id = ? AND status IN ('joined')").run(Date.now(), deal.id);
-  })();
-  for (const o of people) notifyUser(o.tg_id, 'cancelled', { title: deal.title });
-}
-
-function moveDeal(deal, status) {
-  if (status === 'locked') return lockDeal(deal);
-  if (status === 'cancelled') return cancelDeal(deal);
-  db.prepare('UPDATE deals SET status = ? WHERE id = ?').run(status, deal.id);
-  const key = { ordered: 'ordered', shipped: 'shipped', arrived: 'arrived' }[status];
-  if (key) {
-    for (const o of participants(deal.id)) {
-      if (['paid', 'receipt_uploaded', 'awaiting_payment'].includes(o.status)) {
-        notifyUser(o.tg_id, key, { title: deal.title, eta: deal.eta_text || '-' });
-      }
+async function notifyAdmins(text) {
+  if (!bot) return;
+  for (const id of ADMIN_IDS) {
+    try {
+      await bot.api.sendMessage(id, text);
+    } catch (err) {
+      console.warn('admin notify failed for', id, err.description || err.message);
     }
   }
 }
 
-// Runs every minute: lock deals that reached the minimum at the deadline, cancel the rest.
-function checkDeadlines() {
-  const due = db.prepare("SELECT * FROM deals WHERE status = 'open' AND deadline <= ?").all(Date.now());
-  for (const d of due) {
-    const stats = aggregate(d.id);
-    if (stats.total >= d.moq) lockDeal(d);
-    else cancelDeal(d);
+// ---------- products and pricing ----------
+function priceFor(tiers, qty) {
+  let price = tiers[0].price;
+  for (const t of tiers) if (qty >= t.min_qty) price = t.price;
+  return price;
+}
+
+function serializeProduct(p) {
+  const tiers = JSON.parse(p.tiers);
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    origin: p.origin,
+    unit: p.unit,
+    image: p.image ? `/images/${p.image}` : null,
+    moq: p.moq,
+    max_qty: p.max_qty,
+    tiers,
+    lead_time: p.lead_time,
+    active: !!p.active,
+    base_price: tiers[0].price,
+    best_price: tiers[tiers.length - 1].price,
+  };
+}
+
+// The first tier always starts at the MOQ. Extra tiers must start above it and cost less.
+function normalizeTiers(raw, moq) {
+  const list = (Array.isArray(raw) ? raw : [])
+    .map((t) => ({ min_qty: Math.floor(Number(t.min_qty)), price: round2(Number(t.price)) }))
+    .filter((t) => t.min_qty >= 1 && t.price > 0)
+    .sort((a, b) => a.min_qty - b.min_qty);
+  if (!list.length) return { error: 'add the price at the minimum order' };
+  const base = list.filter((t) => t.min_qty <= moq).pop() || list[0];
+  const extra = list.filter((t) => t !== base && t.min_qty > moq);
+  const out = [{ min_qty: moq, price: base.price }, ...extra];
+  for (let i = 1; i < out.length; i++) {
+    if (out[i].min_qty <= out[i - 1].min_qty) return { error: 'each price tier needs a higher quantity than the one before' };
+    if (out[i].price >= out[i - 1].price) return { error: 'prices must drop as quantity rises' };
+  }
+  return { tiers: out };
+}
+
+function parseProductBody(b) {
+  const title = String(b.title || '').trim().slice(0, 120);
+  const moq = Math.floor(Number(b.moq));
+  const maxQty = Math.max(0, Math.floor(Number(b.max_qty) || 0));
+  if (!title) return { error: 'product name is required' };
+  if (!(moq >= 1)) return { error: 'minimum order quantity must be at least 1' };
+  if (maxQty > 0 && maxQty < moq) return { error: 'maximum per order cannot be lower than the minimum' };
+  let rawTiers;
+  try { rawTiers = JSON.parse(b.tiers || '[]'); } catch { return { error: 'invalid price tiers' }; }
+  const t = normalizeTiers(rawTiers, moq);
+  if (t.error) return { error: t.error };
+  return {
+    fields: {
+      title,
+      description: String(b.description || '').slice(0, 2000),
+      origin: String(b.origin || '').slice(0, 80),
+      unit: String(b.unit || 'piece').trim().slice(0, 30) || 'piece',
+      moq,
+      max_qty: maxQty,
+      tiers: JSON.stringify(t.tiers),
+      lead_time: String(b.lead_time || '').slice(0, 120),
+      active: b.active === undefined ? undefined : ['1', 'true', 1, true].includes(b.active) ? 1 : 0,
+    },
+  };
+}
+
+// ---------- orders ----------
+const ORDER_FLOW = { paid: 'ordered', ordered: 'shipped', shipped: 'arrived', arrived: 'completed' };
+const PREVIOUS = { ordered: 'paid', shipped: 'ordered', arrived: 'shipped', completed: 'arrived' };
+
+function serializeOrder(o, p) {
+  const product = p || db.prepare('SELECT * FROM products WHERE id = ?').get(o.product_id);
+  return {
+    id: o.id,
+    product_id: o.product_id,
+    title: product ? product.title : '(removed product)',
+    unit: product ? product.unit : '',
+    image: product && product.image ? `/images/${product.image}` : null,
+    qty: o.qty,
+    unit_price: o.unit_price,
+    total: o.total,
+    status: o.status,
+    has_receipt: !!o.receipt,
+    reject_note: o.reject_note,
+    eta_text: o.eta_text,
+    note: o.note,
+    created_at: o.created_at,
+    pay_by: PAY_DAYS > 0 && o.status === 'awaiting_payment' ? o.created_at + PAY_DAYS * 86400000 : null,
+  };
+}
+
+const orderVars = (o) => {
+  const p = db.prepare('SELECT title FROM products WHERE id = ?').get(o.product_id);
+  return { id: o.id, title: p ? p.title : '', qty: o.qty, total: money(o.total), eta: o.eta_text || '-' };
+};
+
+function expireUnpaid() {
+  if (!(PAY_DAYS > 0)) return;
+  const cutoff = Date.now() - PAY_DAYS * 86400000;
+  const rows = db.prepare("SELECT * FROM bulk_orders WHERE status = 'awaiting_payment' AND created_at <= ?").all(cutoff);
+  for (const o of rows) {
+    db.prepare("UPDATE bulk_orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(Date.now(), o.id);
+    notifyUser(o.tg_id, 'expired', orderVars(o));
   }
 }
-setInterval(() => { try { checkDeadlines(); } catch (e) { console.error(e); } }, 60 * 1000);
+setInterval(() => { try { expireUnpaid(); } catch (e) { console.error(e); } }, EXPIRY_CHECK_MS);
 
 // ---------- auth ----------
 function validateInitData(initData) {
@@ -334,6 +337,8 @@ app.use(express.json({ limit: '100kb' }));
 app.use('/images', express.static(IMAGE_DIR, { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
+
 app.get('/api/config', auth, (req, res) => {
   res.json({
     user: req.user,
@@ -341,6 +346,7 @@ app.get('/api/config', auth, (req, res) => {
     payment_info: getSetting('payment_info', ''),
     bot_username: BOT_USERNAME,
     pay_days: PAY_DAYS,
+    has_logo: fs.existsSync(path.join(__dirname, 'public', 'brand', 'logo.png')),
   });
 });
 
@@ -353,59 +359,64 @@ app.put('/api/me', auth, (req, res) => {
   res.json(db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.tgId));
 });
 
-app.get('/api/deals', auth, (req, res) => {
-  const rows = db
-    .prepare(`SELECT * FROM deals ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'locked' THEN 1 WHEN 'ordered' THEN 1 WHEN 'shipped' THEN 1 WHEN 'arrived' THEN 1 ELSE 2 END, deadline ASC`)
-    .all();
-  res.json(rows.map((d) => serializeDeal(d, req.tgId)));
+// products (buyers)
+app.get('/api/products', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY created_at DESC, id DESC').all();
+  res.json(rows.map(serializeProduct));
 });
 
-app.get('/api/deals/:id', auth, (req, res) => {
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(req.params.id);
-  if (!d) return res.status(404).json({ error: 'not found' });
-  res.json(serializeDeal(d, req.tgId));
+app.get('/api/products/:id', auth, (req, res) => {
+  const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!p || (!p.active && !req.isAdmin)) return res.status(404).json({ error: 'not found' });
+  res.json(serializeProduct(p));
 });
 
-app.post('/api/deals/:id/join', auth, (req, res) => {
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(req.params.id);
-  if (!d) return res.status(404).json({ error: 'not found' });
-  if (d.status !== 'open' || d.deadline <= Date.now()) return res.status(400).json({ error: 'this group is closed' });
+app.post('/api/products/:id/order', auth, (req, res) => {
+  const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!p || !p.active) return res.status(404).json({ error: 'this product is not available' });
   if (!req.user.phone || !req.user.name) return res.status(400).json({ error: 'profile_required' });
   const qty = Math.floor(Number(req.body.qty));
   if (!Number.isFinite(qty) || qty < 1) return res.status(400).json({ error: 'invalid quantity' });
-  if (d.max_per_buyer > 0 && qty > d.max_per_buyer) return res.status(400).json({ error: `maximum ${d.max_per_buyer} per buyer` });
+  if (qty < p.moq) return res.status(400).json({ error: `minimum order is ${p.moq} ${p.unit}` });
+  if (p.max_qty > 0 && qty > p.max_qty) return res.status(400).json({ error: `maximum per order is ${p.max_qty} ${p.unit}` });
+  const unpaid = db.prepare("SELECT COUNT(*) AS c FROM bulk_orders WHERE tg_id = ? AND status = 'awaiting_payment'").get(req.tgId).c;
+  if (unpaid >= 10) return res.status(400).json({ error: 'you have too many unpaid orders. Pay or cancel some first.' });
+  const unitPrice = priceFor(JSON.parse(p.tiers), qty);
+  const total = round2(unitPrice * qty);
   const now = Date.now();
-  db.prepare(
-    `INSERT INTO orders (deal_id, tg_id, qty, status, created_at, updated_at) VALUES (?, ?, ?, 'joined', ?, ?)
-     ON CONFLICT(deal_id, tg_id) DO UPDATE SET qty = excluded.qty, status = 'joined', updated_at = excluded.updated_at`
-  ).run(d.id, req.tgId, qty, now, now);
-  res.json(serializeDeal(d, req.tgId));
+  const info = db
+    .prepare('INSERT INTO bulk_orders (product_id, tg_id, qty, unit_price, total, status, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(p.id, req.tgId, qty, unitPrice, total, 'awaiting_payment', String(req.body.note || '').trim().slice(0, 300), now, now);
+  const order = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(info.lastInsertRowid);
+  notifyUser(req.tgId, 'placed', orderVars(order));
+  notifyAdmins(`New order #${order.id}: ${qty} x ${p.title} from ${req.user.name}${req.user.business_name ? ' (' + req.user.business_name + ')' : ''}, ${req.user.phone}. Total ${money(total)} ETB.`);
+  res.json(serializeOrder(order, p));
 });
 
-app.post('/api/deals/:id/leave', auth, (req, res) => {
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(req.params.id);
-  if (!d) return res.status(404).json({ error: 'not found' });
-  if (d.status !== 'open') return res.status(400).json({ error: 'you can only leave while the group is open' });
-  db.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE deal_id = ? AND tg_id = ?").run(Date.now(), d.id, req.tgId);
-  res.json(serializeDeal(d, req.tgId));
-});
-
+// orders (buyers)
 app.get('/api/my/orders', auth, (req, res) => {
-  const rows = db
-    .prepare("SELECT o.*, d.title FROM orders o JOIN deals d ON d.id = o.deal_id WHERE o.tg_id = ? AND o.status != 'cancelled' ORDER BY o.updated_at DESC")
-    .all(req.tgId);
-  res.json(
-    rows.map((o) => {
-      const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(o.deal_id);
-      return { ...serializeOrder(o, d, aggregate(d.id)), title: d.title, deal_status: d.status, unit: d.unit };
-    })
-  );
+  const rows = db.prepare('SELECT * FROM bulk_orders WHERE tg_id = ? ORDER BY created_at DESC, id DESC').all(req.tgId);
+  res.json(rows.map((o) => serializeOrder(o)));
 });
 
-app.post('/api/orders/:id/receipt', auth, (req, res, next) => {
+app.get('/api/orders/:id', auth, (req, res) => {
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(req.params.id);
+  if (!o || (o.tg_id !== req.tgId && !req.isAdmin)) return res.status(404).json({ error: 'not found' });
+  res.json(serializeOrder(o));
+});
+
+app.post('/api/orders/:id/cancel', auth, (req, res) => {
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ? AND tg_id = ?').get(req.params.id, req.tgId);
+  if (!o) return res.status(404).json({ error: 'not found' });
+  if (o.status !== 'awaiting_payment') return res.status(400).json({ error: 'you can only cancel an order before you pay. Contact us for help.' });
+  db.prepare("UPDATE bulk_orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(Date.now(), o.id);
+  res.json(serializeOrder(db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(o.id)));
+});
+
+app.post('/api/orders/:id/receipt', auth, (req, res) => {
   receiptUpload.single('receipt')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    const o = db.prepare('SELECT * FROM orders WHERE id = ? AND tg_id = ?').get(req.params.id, req.tgId);
+    const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ? AND tg_id = ?').get(req.params.id, req.tgId);
     if (!o || !req.file) {
       if (req.file) removeFile(RECEIPT_DIR, req.file.filename);
       return res.status(404).json({ error: 'order or file not found' });
@@ -415,19 +426,18 @@ app.post('/api/orders/:id/receipt', auth, (req, res, next) => {
       return res.status(400).json({ error: 'payment is not open for this order' });
     }
     removeFile(RECEIPT_DIR, o.receipt);
-    db.prepare("UPDATE orders SET receipt = ?, status = 'receipt_uploaded', reject_note = NULL, updated_at = ? WHERE id = ?").run(req.file.filename, Date.now(), o.id);
+    db.prepare("UPDATE bulk_orders SET receipt = ?, status = 'receipt_uploaded', reject_note = NULL, updated_at = ? WHERE id = ?").run(req.file.filename, Date.now(), o.id);
+    notifyAdmins(`Receipt uploaded for order #${o.id} by ${req.user.name}. Open the app, Admin tab, to confirm it.`);
     res.json({ ok: true });
   });
 });
 
 app.get('/api/orders/:id/receipt', auth, (req, res) => {
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(req.params.id);
   if (!o || !o.receipt) return res.status(404).end();
   if (o.tg_id !== req.tgId && !req.isAdmin) return res.status(403).end();
   res.sendFile(path.join(RECEIPT_DIR, path.basename(o.receipt)));
 });
-
-app.get('/api/settings', auth, (req, res) => res.json({ payment_info: getSetting('payment_info', '') }));
 
 // ---------- admin ----------
 app.put('/api/admin/settings', auth, adminOnly, (req, res) => {
@@ -435,122 +445,128 @@ app.put('/api/admin/settings', auth, adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/deals', auth, adminOnly, (req, res, next) => {
-  imageUpload.single('image')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    try {
-      const b = req.body;
-      const title = String(b.title || '').trim().slice(0, 120);
-      const moq = Math.floor(Number(b.moq));
-      const deadline = Math.floor(Number(b.deadline));
-      let tiers = JSON.parse(b.tiers || '[]');
-      tiers = tiers
-        .map((t) => ({ min_qty: Math.floor(Number(t.min_qty)), price: round2(Number(t.price)) }))
-        .filter((t) => t.min_qty >= 1 && t.price > 0)
-        .sort((x, y) => x.min_qty - y.min_qty);
-      const problems = [];
-      if (!title) problems.push('title is required');
-      if (!(moq >= 1)) problems.push('minimum quantity must be at least 1');
-      if (!(deadline > Date.now())) problems.push('deadline must be in the future');
-      if (!tiers.length) problems.push('add at least one price tier');
-      for (let i = 1; i < tiers.length; i++) {
-        if (tiers[i].price >= tiers[i - 1].price) problems.push('prices must drop as quantity rises');
-      }
-      if (problems.length) {
-        if (req.file) removeFile(IMAGE_DIR, req.file.filename);
-        return res.status(400).json({ error: problems.join('; ') });
-      }
-      tiers[0].min_qty = 1;
-      const info = db
-        .prepare(
-          `INSERT INTO deals (title, description, origin, unit, image, moq, max_per_buyer, tiers, deadline, eta_text, status, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`
-        )
-        .run(
-          title,
-          String(b.description || '').slice(0, 2000),
-          String(b.origin || '').slice(0, 80),
-          String(b.unit || 'piece').slice(0, 30),
-          req.file ? req.file.filename : null,
-          moq,
-          Math.max(0, Math.floor(Number(b.max_per_buyer) || 0)),
-          JSON.stringify(tiers),
-          deadline,
-          String(b.eta_text || '').slice(0, 120),
-          Date.now()
-        );
-      res.json(serializeDeal(db.prepare('SELECT * FROM deals WHERE id = ?').get(info.lastInsertRowid), req.tgId));
-    } catch (e) {
-      if (req.file) removeFile(IMAGE_DIR, req.file.filename);
-      res.status(400).json({ error: 'invalid deal data' });
-    }
-  });
-});
-
-app.post('/api/admin/deals/:id/status', auth, adminOnly, (req, res) => {
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(req.params.id);
-  if (!d) return res.status(404).json({ error: 'not found' });
-  const next = String(req.body.status || '');
-  if (!(TRANSITIONS[d.status] || []).includes(next)) return res.status(400).json({ error: `cannot move from ${d.status} to ${next}` });
-  if (next === 'locked' && aggregate(d.id).total < d.moq && !req.body.force) {
-    return res.status(400).json({ error: 'minimum quantity not reached', can_force: true });
-  }
-  if (req.body.eta_text !== undefined) {
-    d.eta_text = String(req.body.eta_text).slice(0, 120);
-    db.prepare('UPDATE deals SET eta_text = ? WHERE id = ?').run(d.eta_text, d.id);
-  }
-  moveDeal(d, next);
-  res.json(serializeDeal(db.prepare('SELECT * FROM deals WHERE id = ?').get(d.id), req.tgId));
-});
-
-app.get('/api/admin/deals/:id/orders', auth, adminOnly, (req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT o.*, u.name, u.username, u.phone, u.business_name FROM orders o JOIN users u ON u.tg_id = o.tg_id
-       WHERE o.deal_id = ? AND o.status != 'cancelled' ORDER BY o.created_at ASC`
-    )
-    .all(req.params.id);
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(req.params.id);
-  if (!d) return res.status(404).json({ error: 'not found' });
-  const stats = aggregate(d.id);
+app.get('/api/admin/products', auth, adminOnly, (req, res) => {
+  const rows = db.prepare('SELECT * FROM products ORDER BY created_at DESC, id DESC').all();
   res.json(
-    rows.map((o) => ({
-      ...serializeOrder(o, d, stats),
-      name: o.name,
-      username: o.username,
-      phone: o.phone,
-      business_name: o.business_name,
+    rows.map((p) => ({
+      ...serializeProduct(p),
+      orders: db.prepare("SELECT COUNT(*) AS c FROM bulk_orders WHERE product_id = ? AND status != 'cancelled'").get(p.id).c,
     }))
   );
 });
 
+app.post('/api/admin/products', auth, adminOnly, (req, res) => {
+  imageUpload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    const parsed = parseProductBody(req.body);
+    if (parsed.error) {
+      if (req.file) removeFile(IMAGE_DIR, req.file.filename);
+      return res.status(400).json({ error: parsed.error });
+    }
+    const f = parsed.fields;
+    const now = Date.now();
+    const info = db
+      .prepare('INSERT INTO products (title, description, origin, unit, image, moq, max_qty, tiers, lead_time, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(f.title, f.description, f.origin, f.unit, req.file ? req.file.filename : null, f.moq, f.max_qty, f.tiers, f.lead_time, f.active === undefined ? 1 : f.active, now, now);
+    res.json(serializeProduct(db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid)));
+  });
+});
+
+app.put('/api/admin/products/:id', auth, adminOnly, (req, res) => {
+  imageUpload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+    if (!p) {
+      if (req.file) removeFile(IMAGE_DIR, req.file.filename);
+      return res.status(404).json({ error: 'not found' });
+    }
+    const parsed = parseProductBody(req.body);
+    if (parsed.error) {
+      if (req.file) removeFile(IMAGE_DIR, req.file.filename);
+      return res.status(400).json({ error: parsed.error });
+    }
+    const f = parsed.fields;
+    let image = p.image;
+    if (req.file) { removeFile(IMAGE_DIR, p.image); image = req.file.filename; }
+    else if (req.body.remove_image === '1') { removeFile(IMAGE_DIR, p.image); image = null; }
+    db.prepare('UPDATE products SET title = ?, description = ?, origin = ?, unit = ?, image = ?, moq = ?, max_qty = ?, tiers = ?, lead_time = ?, active = ?, updated_at = ? WHERE id = ?')
+      .run(f.title, f.description, f.origin, f.unit, image, f.moq, f.max_qty, f.tiers, f.lead_time, f.active === undefined ? p.active : f.active, Date.now(), p.id);
+    res.json(serializeProduct(db.prepare('SELECT * FROM products WHERE id = ?').get(p.id)));
+  });
+});
+
+app.delete('/api/admin/products/:id', auth, adminOnly, (req, res) => {
+  const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  const used = db.prepare('SELECT COUNT(*) AS c FROM bulk_orders WHERE product_id = ?').get(p.id).c;
+  if (used > 0) return res.status(400).json({ error: 'this product has orders, so it cannot be deleted. Hide it instead.' });
+  removeFile(IMAGE_DIR, p.image);
+  db.prepare('DELETE FROM products WHERE id = ?').run(p.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/orders', auth, adminOnly, (req, res) => {
+  const status = String(req.query.status || 'active');
+  const productId = Number(req.query.product_id) || null;
+  const where = [];
+  const args = [];
+  if (status === 'active') where.push("o.status NOT IN ('completed', 'cancelled')");
+  else if (status !== 'all') { where.push('o.status = ?'); args.push(status); }
+  if (productId) { where.push('o.product_id = ?'); args.push(productId); }
+  const rows = db
+    .prepare(
+      `SELECT o.*, u.name, u.username, u.phone, u.business_name FROM bulk_orders o JOIN users u ON u.tg_id = o.tg_id
+       ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY o.created_at DESC, o.id DESC LIMIT 300`
+    )
+    .all(...args);
+  res.json(rows.map((o) => ({ ...serializeOrder(o), name: o.name, username: o.username, phone: o.phone, business_name: o.business_name })));
+});
+
 app.post('/api/admin/orders/:id/confirm', auth, adminOnly, (req, res) => {
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(req.params.id);
   if (!o) return res.status(404).json({ error: 'not found' });
   if (!['receipt_uploaded', 'awaiting_payment'].includes(o.status)) return res.status(400).json({ error: 'order is not waiting for payment' });
-  db.prepare("UPDATE orders SET status = 'paid', reject_note = NULL, updated_at = ? WHERE id = ?").run(Date.now(), o.id);
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(o.deal_id);
-  notifyUser(o.tg_id, 'paid', { title: d.title });
+  db.prepare("UPDATE bulk_orders SET status = 'paid', reject_note = NULL, updated_at = ? WHERE id = ?").run(Date.now(), o.id);
+  notifyUser(o.tg_id, 'paid', orderVars(o));
   res.json({ ok: true });
 });
 
 app.post('/api/admin/orders/:id/reject', auth, adminOnly, (req, res) => {
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(req.params.id);
   if (!o) return res.status(404).json({ error: 'not found' });
   if (o.status !== 'receipt_uploaded') return res.status(400).json({ error: 'no receipt to reject' });
   const note = String(req.body.note || '').slice(0, 200);
   removeFile(RECEIPT_DIR, o.receipt);
-  db.prepare("UPDATE orders SET status = 'awaiting_payment', receipt = NULL, reject_note = ?, updated_at = ? WHERE id = ?").run(note, Date.now(), o.id);
-  const d = db.prepare('SELECT * FROM deals WHERE id = ?').get(o.deal_id);
-  notifyUser(o.tg_id, 'rejected', { title: d.title, note });
+  db.prepare("UPDATE bulk_orders SET status = 'awaiting_payment', receipt = NULL, reject_note = ?, updated_at = ? WHERE id = ?").run(note, Date.now(), o.id);
+  notifyUser(o.tg_id, 'rejected', { ...orderVars(o), note });
   res.json({ ok: true });
 });
 
 app.post('/api/admin/orders/:id/cancel', auth, adminOnly, (req, res) => {
-  const o = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(req.params.id);
   if (!o) return res.status(404).json({ error: 'not found' });
-  db.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(Date.now(), o.id);
+  if (['completed', 'cancelled'].includes(o.status)) return res.status(400).json({ error: `order is already ${o.status}` });
+  db.prepare("UPDATE bulk_orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(Date.now(), o.id);
+  notifyUser(o.tg_id, 'cancelled', orderVars(o));
   res.json({ ok: true });
+});
+
+// Move several orders forward one step: paid to ordered, ordered to shipped, shipped to arrived, arrived to completed.
+app.post('/api/admin/orders/advance', auth, adminOnly, (req, res) => {
+  const status = String(req.body.status || '');
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Boolean).slice(0, 300) : [];
+  if (!PREVIOUS[status]) return res.status(400).json({ error: 'invalid status' });
+  const eta = status === 'shipped' ? String(req.body.eta_text || '').slice(0, 120) : null;
+  let updated = 0;
+  for (const id of ids) {
+    const o = db.prepare('SELECT * FROM bulk_orders WHERE id = ?').get(id);
+    if (!o || o.status !== PREVIOUS[status]) continue;
+    if (eta !== null) db.prepare('UPDATE bulk_orders SET eta_text = ? WHERE id = ?').run(eta, id);
+    db.prepare('UPDATE bulk_orders SET status = ?, updated_at = ? WHERE id = ?').run(status, Date.now(), id);
+    notifyUser(o.tg_id, status, { ...orderVars(o), eta: eta || o.eta_text || '-' });
+    updated++;
+  }
+  res.json({ updated, skipped: ids.length - updated });
 });
 
 app.use((err, req, res, next) => {
@@ -563,8 +579,8 @@ if (BOT_TOKEN) {
   bot = new Bot(BOT_TOKEN);
   bot.command('start', (ctx) => {
     const text =
-      'Gebeya Go lets you join group orders for imported goods and get supplier prices together. Tap the button to see the open groups.\n\n' +
-      'ገበያ ጎ በጋራ በመግዛት ከውጭ የሚገቡ ዕቃዎችን በአቅራቢ ዋጋ ለማግኘት ይረዳዎታል። ክፍት ቡድኖችን ለማየት ቁልፉን ይጫኑ።';
+      'Gebeya Go is where businesses and new business owners buy imported goods in bulk at supplier prices. Tap the button to see the products and their minimum order quantities.\n\n' +
+      'ገበያ ጎ ነጋዴዎች እና አዲስ ንግድ የሚጀምሩ ሰዎች ከውጭ የሚገቡ ዕቃዎችን በጅምላ በአቅራቢ ዋጋ የሚገዙበት ነው። ምርቶችን እና ዝቅተኛ የትዕዛዝ መጠኖችን ለማየት ቁልፉን ይጫኑ።';
     if (WEBAPP_URL.startsWith('https://')) {
       return ctx.reply(text, { reply_markup: new InlineKeyboard().webApp('Open Gebeya Go', WEBAPP_URL) });
     }

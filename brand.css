@@ -1,0 +1,25 @@
+/*
+  Gebeya Go brand file.
+  Change the values below to match the logo. Nothing else needs editing.
+
+  --brand        main color: buttons, active tab, progress, logo text
+  --brand-text   text color on top of --brand (white or black)
+  --brand-soft   light tint of the main color: highlighted rows and finished steps
+  --accent       second color: warnings and the "waiting" badges
+  --danger       errors, cancel and delete buttons
+  --font         font stack (system fonts load fastest on slow connections)
+
+  Logo: put your logo file at public/brand/logo.png (a PNG with a transparent background, about 200 px wide).
+  It is shown at the top of the app automatically. If the logo already contains the words "Gebeya Go",
+  uncomment the line at the bottom to hide the text name next to it.
+*/
+:root {
+  --brand: #14694a;
+  --brand-text: #ffffff;
+  --brand-soft: rgba(20, 105, 74, 0.16);
+  --accent: #b87a12;
+  --danger: #b3321f;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Ethiopic", "Abyssinica SIL", sans-serif;
+}
+
+/* .brand { display: none; } */
