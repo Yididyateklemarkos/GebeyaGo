@@ -13,27 +13,34 @@ A Telegram mini app for bulk buying imported goods. Businesses and people starti
 
 Payment is manual. The app never touches money, it only tracks who has paid. The buyer side is in English and Amharic. The Admin tab is in English.
 
+## Where the data lives
+
+Everything is in one PostgreSQL database: users, products, orders, settings, and also product photos and payment receipts (photos are shrunk on the phone before upload). The app itself keeps no files, so it can run on a free host that has no permanent disk. See `SETUP-FREE.md` for the free setup.
+
 ## Setup
 
 1. Create the bot with @BotFather (`/newbot`) and copy the token. Get your Telegram user ID from @userinfobot.
-2. Host the app over https on any host that runs Node 20 or newer, with a persistent disk for `DATA_DIR` (database, receipts and photos live there).
+2. Create a PostgreSQL database and copy its connection string into `DATABASE_URL`.
+3. Host the app over https on any host that runs Node 20 or newer.
 
 ```
 cp .env.example .env     # fill in the values, or set them in your host's dashboard
 npm install
-npm start
+node --env-file=.env server.js
 ```
 
-Variables are listed in `.env.example`. The important ones are `BOT_TOKEN`, `WEBAPP_URL`, `ADMIN_IDS`, `BOT_USERNAME` and `DATA_DIR`. With a `.env` file, run `node --env-file=.env server.js`.
-
-3. With `WEBAPP_URL` set to your https address, the bot sets its menu button on start and `/start` shows an Open button.
-4. First use: open the app from an admin account, go to Admin > Settings, save your payment details, then add products.
+4. With `WEBAPP_URL` set to your https address, the bot sets its menu button on start and `/start` shows an Open button.
+5. First use: open the app from an admin account, go to Admin > Settings, save your payment details, then add products.
 
 ## Branding
 
 - Colors and font: edit `public/brand.css`. It is the only file you need for this.
-- Logo: `public/brand/logo.png` (already included). Colors in `brand.css` come from the logo.
+- Logo: `public/brand/logo.png` (already included).
 
 ## Local testing
 
-`npm run dev` starts the server in dev mode on port 3000. Dev mode lets anyone log in as any user, so never use it on a live server.
+`npm run dev` starts the app with a built in test database in the `.devdb` folder and dev login on port 3000. Dev login lets anyone act as any user, so never use it on a live server (the server refuses to start with it when a bot token is set).
+
+## Backup
+
+`npm run backup` saves every table as JSON and every photo and receipt as a file into `backups/`. Run it on your own computer with the same `DATABASE_URL` as the host.
