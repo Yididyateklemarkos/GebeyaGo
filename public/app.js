@@ -2,7 +2,7 @@
   const tg = window.Telegram && window.Telegram.WebApp;
   if (tg) {
     tg.ready(); tg.expand();
-    try { tg.setHeaderColor('#fdf6ec'); tg.setBackgroundColor('#fdf6ec'); tg.setBottomBarColor && tg.setBottomBarColor('#ffffff'); } catch (e) { /* older clients */ }
+    try { tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#faf8f5'); tg.setBottomBarColor && tg.setBottomBarColor('#ffffff'); } catch (e) { /* older clients */ }
   }
   const buzz = (kind) => { try { const h = tg && tg.HapticFeedback; if (!h) return; if (kind === 'ok') h.notificationOccurred('success'); else if (kind === 'err') h.notificationOccurred('error'); else h.selectionChanged(); } catch (e) { /* ignore */ } };
   const params = new URLSearchParams(location.search);
@@ -39,7 +39,6 @@
       profile_title: 'Your details', name: 'Name', phone: 'Phone number',
       business: 'Business name (or planned business)', language: 'Language',
       save: 'Save', saved: 'Saved', uploaded: 'Receipt uploaded',
-      pay_online: 'Pay online', pay_or: 'Or pay by bank transfer and upload the receipt below.', pay_checking: 'Checking your payment. This updates by itself.', pay_done: 'Payment received',
       hello: 'Hello, {name}', hero_title: 'Buy in bulk. Pay less per unit.', n_products: '{n} products', open_orders: '{n} open orders',
       search_ph: 'Search products', no_match: 'No products match your search.', save_up_to: 'Save up to {pct}%', order_total: 'Order total',
       loading: 'Loading', error: 'Something went wrong. Try again.', yes: 'Yes', no: 'No',
@@ -73,7 +72,6 @@
       profile_title: 'የእርስዎ መረጃ', name: 'ስም', phone: 'ስልክ ቁጥር',
       business: 'የንግድ ስም (ወይም የታቀደ ንግድ)', language: 'ቋንቋ',
       save: 'አስቀምጥ', saved: 'ተቀምጧል', uploaded: 'ደረሰኝ ተጭኗል',
-      pay_online: 'በመስመር ላይ ይክፈሉ', pay_or: 'ወይም በባንክ ልውውጥ ከፍለው ደረሰኙን ከታች ይጫኑ።', pay_checking: 'ክፍያዎን እየፈተሽን ነው። በራሱ ይዘምናል።', pay_done: 'ክፍያ ደርሷል',
       hello: 'ሰላም {name}', hero_title: 'በጅምላ ይግዙ። የአንዱ ዋጋ ይቀንሳል።', n_products: '{n} ምርቶች', open_orders: '{n} ክፍት ትዕዛዞች',
       search_ph: 'ምርት ፈልግ', no_match: 'ከፍለጋዎ ጋር የሚመሳሰል ምርት የለም።', save_up_to: 'እስከ {pct}% ይቆጥቡ', order_total: 'የትዕዛዙ ጠቅላላ',
       loading: 'በመጫን ላይ', error: 'ችግር ተፈጥሯል። እንደገና ይሞክሩ።', yes: 'አዎ', no: 'አይ',
@@ -123,6 +121,23 @@
     return r.blob();
   }
 
+  // Photos are shrunk before upload, so they stay small in the free database and upload fast on mobile data.
+  async function shrink(file, maxSide, quality) {
+    try {
+      if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+      const bmp = await createImageBitmap(file);
+      const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(bmp, 0, 0, c.width, c.height);
+      const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', quality));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+    } catch (e) { return file; }
+  }
+
   // ---------- small ui helpers ----------
   let toastTimer;
   function toast(msg) {
@@ -166,24 +181,6 @@
   document.addEventListener('click', (e) => { if (e.target.closest('[data-act]')) buzz(); }, true);
   document.addEventListener('input', (e) => { if (e.target.id === 'pSearch') $('plist').innerHTML = productList(e.target.value); });
 
-  // after the buyer leaves for the payment page, check the order until it turns paid
-  let payTimer = null;
-  async function checkPayment(id) {
-    try {
-      const r = await api(`/api/orders/${id}/pay-status`);
-      if (!['awaiting_payment', 'receipt_uploaded'].includes(r.order_status)) {
-        clearInterval(payTimer); payTimer = null; S.payWait = null;
-        await refreshOrders(); toast(t('pay_done')); render(); celebrate();
-      }
-    } catch (e) { /* try again on the next tick */ }
-  }
-  function watchPayment(id) {
-    clearInterval(payTimer);
-    let n = 0;
-    payTimer = setInterval(() => { if (++n > 180) { clearInterval(payTimer); payTimer = null; S.payWait = null; return; } checkPayment(id); }, 5000);
-  }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.payWait) checkPayment(S.payWait); });
-
   const fail = (e) => {
     buzz('err');
     if (e.message === 'profile_required') { toast(t('profile_needed')); S.tab = 'profile'; S.view = null; render(); return; }
@@ -226,8 +223,6 @@
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   };
   const icon = (n, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
-  // market awning: stripes with a scalloped edge, drawn in flat brand colors
-  const AWNING = `<svg class="awning" viewBox="0 0 320 22" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="aw" width="40" height="22" patternUnits="userSpaceOnUse"><rect width="20" height="22" fill="#fdf6ec" opacity=".95"/><path d="M0 14h20a10 10 0 0 1-20 0Z" fill="#fdf6ec"/><path d="M20 14h20a10 10 0 0 1-20 0Z" fill="#a2441d"/><rect x="20" width="20" height="14" fill="#a2441d"/></pattern></defs><rect width="320" height="22" fill="url(#aw)"/></svg>`;
   const BASKET = '<svg class="hero-mark" viewBox="0 0 120 120" aria-hidden="true"><path d="M20 52h80L90 98H30Z" fill="#fdf6ec"/><path d="M32 52a28 28 0 0 1 56 0" fill="none" stroke="#fdf6ec" stroke-width="7"/><path d="M104 66v22l20-11Z" fill="#fdf6ec"/></svg>';
   const savePct = (p) => (p.best_price < p.base_price ? Math.round((1 - p.best_price / p.base_price) * 100) : 0);
 
@@ -252,7 +247,6 @@
               <div class="price">${money(p.base_price)} <small>${t('per', { unit: esc(p.unit) })}</small></div>
               ${p.best_price < p.base_price ? `<div class="muted small">${t('down_to', { price: money(p.best_price) })}</div>` : ''}
             </div>
-            <span class="go">${icon('arrow')}</span>
           </div>
         </div>
       </div>`;
@@ -270,7 +264,6 @@
     const first = esc((S.cfg.user.name || '').split(' ')[0]);
     return `
       <section class="hero">
-        ${AWNING}
         ${BASKET}
         <div class="hero-body">
           ${first ? `<div class="hello">${t('hello', { name: first })}</div>` : ''}
@@ -336,11 +329,6 @@
   function paymentBlock(o) {
     if (!['awaiting_payment', 'receipt_uploaded'].includes(o.status)) return '';
     let html = `<h3>${t('amount_due')}</h3><div class="price">${money(o.total)}</div>`;
-    if (S.cfg.online_pay) {
-      html += `<div class="btns"><button class="btn" data-act="payOnline" data-order="${o.id}">${t('pay_online')}</button></div>`;
-      if (S.payWait === o.id) html += `<div class="note">${t('pay_checking')}</div>`;
-      html += `<p class="muted small">${t('pay_or')}</p>`;
-    }
     if (o.pay_by) html += `<p class="muted small">${t('pay_by', { d: esc(dateStr(o.pay_by)) })}</p>`;
     html += `<h3>${t('how_to_pay')}</h3><div class="pre">${esc(S.cfg.payment_info || t('payment_missing'))}</div>`;
     if (o.status === 'awaiting_payment' && o.reject_note) html += `<div class="note red">${t('rejected_note', { note: esc(o.reject_note) })}</div>`;
@@ -567,15 +555,6 @@
         toast(t('order_placed')); render(); window.scrollTo(0, 0); celebrate();
       } catch (e) { fail(e); }
     },
-    async payOnline(el) {
-      const id = Number(el.dataset.order);
-      try {
-        const r = await api(`/api/orders/${id}/pay`, { method: 'POST' });
-        S.payWait = id; render();
-        if (tg && tg.openLink) tg.openLink(r.checkout_url); else window.open(r.checkout_url, '_blank');
-        watchPayment(id);
-      } catch (e) { fail(e); }
-    },
     pickReceipt(el) { $('receiptInput').dataset.order = el.dataset.order; $('receiptInput').click(); },
     async cancelOrder(el) {
       const ok = await ask({ title: t('confirm_cancel'), okLabel: t('yes'), cancelLabel: t('no'), danger: true });
@@ -650,7 +629,7 @@
         f.append('moq', String(moq)); f.append('max_qty', $('fMax').value || '0');
         f.append('lead_time', $('fLead').value); f.append('active', $('fActive').checked ? '1' : '0');
         f.append('tiers', JSON.stringify(tiers));
-        if ($('fImage').files[0]) f.append('image', $('fImage').files[0]);
+        if ($('fImage').files[0]) f.append('image', await shrink($('fImage').files[0], 1280, 0.82));
         if ($('fRemoveImage') && $('fRemoveImage').checked) f.append('remove_image', '1');
         const editing = S.form.id;
         await api(editing ? `/api/admin/products/${editing}` : '/api/admin/products', { method: editing ? 'PUT' : 'POST', form: f });
@@ -727,7 +706,7 @@
     if (!file || !order) return;
     try {
       const f = new FormData();
-      f.append('receipt', file);
+      f.append('receipt', await shrink(file, 1600, 0.8));
       await api(`/api/orders/${order}/receipt`, { method: 'POST', form: f });
       await refreshOrders(); toast(t('uploaded')); render();
     } catch (err) { fail(err); }
